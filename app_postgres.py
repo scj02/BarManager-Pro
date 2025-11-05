@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 BarManager Pro - Versión con PostgreSQL y Funciones Avanzadas
-Desarrollado por: Sergio Valderrama, Cristian Cruz, Julian Antonio Mejía Eslava
+Desarrollado por: Sergio Andrés Valderrama Velez, Cristian Santiago Cruz Jiménez, Julian Antonio Mejía Eslava
 Docente: Christian Felipe Duarte
 Septiembre 2025 - Bogotá D.C.
 """
@@ -262,4 +262,5 @@ class Pedido(BaseModel):
             'empleado_nombre': self.empleado.nombre_completo if self.empleado else None,
             'cliente_nombre': self.cliente.nombre_completo if self.cliente else 'Cliente Anónimo',
             'mesa_numero': self.mesa.numero_mesa if self.mesa else None
+
         }
