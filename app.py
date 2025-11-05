@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
 BarManager Pro - Sistema de Gestión Integral para Bares
-Desarrollado por: Sergio Valderrama, Cristian Cruz, Julian Antonio Mejía Eslava
+Desarrollado por: Sergio Andrés Valderrama Velez, Cristian Santiago Cruz Jiménez, Julian Antonio Mejía Eslava
 Docente: Christian Felipe Duarte
-Septiembre 2025 - Bogotá D.C.
+Noviembre 2025 - Bogotá D.C.
 """
 
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
@@ -449,4 +449,5 @@ if __name__ == '__main__':
     print(f"   • {len(PEDIDOS)} pedidos de muestra")
     print("=" * 70)
     
+
     app.run(debug=True, host='0.0.0.0', port=5000)
