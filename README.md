@@ -3,8 +3,8 @@
 **Sistema de Gestión Integral para Bares**
 
 Desarrollado por:
-- **Sergio Valderrama**
-- **Cristian Cruz**
+- **Sergio Andrés Valderrama Velez**
+- **Cristian Santiago Cruz Jiménez**
 - **Julian Antonio Mejía Eslava**
 
 **Docente:** Christian Felipe Duarte  
