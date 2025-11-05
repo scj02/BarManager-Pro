@@ -1,0 +1,803 @@
+{% extends "barmanager/admin/base.html" %}
+
+{% block title %}Personal - BarManager Pro{% endblock %}
+
+{% block page_title %}Gestión de Personal{% endblock %}
+
+{% block content %}
+<!-- Estadísticas de Personal -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <i class="fas fa-users fa-2x text-primary mb-2"></i>
+                <h4 class="fw-bold">{{ empleados|length }}</h4>
+                <small class="text-muted">Total Empleados</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card-success">
+            <div class="card-body text-center">
+                <i class="fas fa-user-check fa-2x text-success mb-2"></i>
+                <h4 class="fw-bold">{{ empleados|selectattr('activo')|list|length }}</h4>
+                <small class="text-muted">Empleados Activos</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card-info">
+            <div class="card-body text-center">
+                <i class="fas fa-briefcase fa-2x text-info mb-2"></i>
+                <h4 class="fw-bold">{{ puestos|length }}</h4>
+                <small class="text-muted">Puestos de Trabajo</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card-warning">
+            <div class="card-body text-center">
+                <i class="fas fa-dollar-sign fa-2x text-warning mb-2"></i>
+                <h4 class="fw-bold">
+                    {% if empleados %}
+                        ${{ "{:,.0f}".format(empleados|sum(attribute='salario_base')|default(0)) }}
+                    {% else %}
+                        $0
+                    {% endif %}
+                </h4>
+                <small class="text-muted">Nómina Total</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Panel de Control -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-users-cog me-2"></i>Gestión de Personal</h5>
+                <div class="btn-group">
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalEmpleado">
+                        <i class="fas fa-user-plus me-2"></i>Nuevo Empleado
+                    </button>
+                    <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#modalPuesto">
+                        <i class="fas fa-briefcase me-2"></i>Nuevo Puesto
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Filtros -->
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <input type="text" class="form-control" id="buscarEmpleado" placeholder="Buscar empleado...">
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="filtroPuesto">
+                            <option value="">Todos los puestos</option>
+                            {% for puesto in puestos %}
+                            <option value="{{ puesto.id }}">{{ puesto.nombre_puesto }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="filtroEstado">
+                            <option value="">Todos los estados</option>
+                            <option value="activo">Activos</option>
+                            <option value="inactivo">Inactivos</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-outline-secondary w-100" onclick="limpiarFiltros()">
+                            <i class="fas fa-eraser me-2"></i>Limpiar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs de Gestión -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" id="personalTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="empleados-tab" data-bs-toggle="tab" data-bs-target="#empleados" type="button" role="tab">
+                            <i class="fas fa-users me-2"></i>Empleados
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="puestos-tab" data-bs-toggle="tab" data-bs-target="#puestos" type="button" role="tab">
+                            <i class="fas fa-briefcase me-2"></i>Puestos de Trabajo
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="asistencia-tab" data-bs-toggle="tab" data-bs-target="#asistencia" type="button" role="tab">
+                            <i class="fas fa-clock me-2"></i>Asistencia
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content" id="personalTabsContent">
+                    <!-- Tab Empleados -->
+                    <div class="tab-pane fade show active" id="empleados" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="tablaEmpleados">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Código</th>
+                                        <th>Empleado</th>
+                                        <th>Puesto</th>
+                                        <th>Email</th>
+                                        <th>Teléfono</th>
+                                        <th>Fecha Ingreso</th>
+                                        <th>Salario</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for empleado in empleados %}
+                                    <tr data-puesto="{{ empleado.id_puesto }}" data-estado="{% if empleado.activo %}activo{% else %}inactivo{% endif %}">
+                                        <td><code>{{ empleado.codigo_empleado }}</code></td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-circle me-2">
+                                                    {{ empleado.nombre[0] }}{{ empleado.apellido[0] }}
+                                                </div>
+                                                <div>
+                                                    <strong>{{ empleado.nombre }} {{ empleado.apellido }}</strong>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ empleado.puesto }}</span>
+                                        </td>
+                                        <td>{{ empleado.email or 'No registrado' }}</td>
+                                        <td>{{ empleado.telefono or 'No registrado' }}</td>
+                                        <td>{{ empleado.fecha_ingreso }}</td>
+                                        <td class="fw-bold text-success">${{ "{:,.0f}".format(empleado.salario_base) }}</td>
+                                        <td>
+                                            {% if empleado.activo %}
+                                            <span class="badge bg-success">Activo</span>
+                                            {% else %}
+                                            <span class="badge bg-danger">Inactivo</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" onclick="editarEmpleado('{{ empleado.id }}')" title="Editar">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-outline-info" onclick="verPerfilEmpleado('{{ empleado.id }}')" title="Ver Perfil">
+                                                    <i class="fas fa-user"></i>
+                                                </button>
+                                                <button class="btn btn-outline-warning" onclick="cambiarPassword('{{ empleado.id }}')" title="Cambiar Contraseña">
+                                                    <i class="fas fa-key"></i>
+                                                </button>
+                                                {% if empleado.activo %}
+                                                <button class="btn btn-outline-danger" onclick="desactivarEmpleado('{{ empleado.id }}')" title="Desactivar">
+                                                    <i class="fas fa-user-times"></i>
+                                                </button>
+                                                {% else %}
+                                                <button class="btn btn-outline-success" onclick="activarEmpleado('{{ empleado.id }}')" title="Activar">
+                                                    <i class="fas fa-user-check"></i>
+                                                </button>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Tab Puestos -->
+                    <div class="tab-pane fade" id="puestos" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Puesto</th>
+                                        <th>Descripción</th>
+                                        <th>Salario Mínimo</th>
+                                        <th>Salario Máximo</th>
+                                        <th>Comisión</th>
+                                        <th>Empleados</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for puesto in puestos %}
+                                    <tr>
+                                        <td><strong>{{ puesto.nombre_puesto }}</strong></td>
+                                        <td>{{ puesto.descripcion or 'Sin descripción' }}</td>
+                                        <td>${{ "{:,.0f}".format(puesto.salario_minimo) }}</td>
+                                        <td>${{ "{:,.0f}".format(puesto.salario_maximo) }}</td>
+                                        <td>{{ puesto.comision_porcentaje }}%</td>
+                                        <td>
+                                            <span class="badge bg-info">
+                                                {{ empleados|selectattr('id_puesto', 'equalto', puesto.id)|list|length }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if puesto.activo %}
+                                            <span class="badge bg-success">Activo</span>
+                                            {% else %}
+                                            <span class="badge bg-danger">Inactivo</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" onclick="editarPuesto('{{ puesto.id }}')" title="Editar">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-outline-info" onclick="verEmpleadosPuesto('{{ puesto.id }}')" title="Ver Empleados">
+                                                    <i class="fas fa-users"></i>
+                                                </button>
+                                                {% if puesto.activo %}
+                                                <button class="btn btn-outline-danger" onclick="desactivarPuesto('{{ puesto.id }}')" title="Desactivar">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                                {% else %}
+                                                <button class="btn btn-outline-success" onclick="activarPuesto('{{ puesto.id }}')" title="Activar">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Tab Asistencia -->
+                    <div class="tab-pane fade" id="asistencia" role="tabpanel">
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <input type="date" class="form-control" id="fechaAsistencia" value="{{ moment().format('YYYY-MM-DD') if moment else '' }}">
+                            </div>
+                            <div class="col-md-4">
+                                <select class="form-select" id="empleadoAsistencia">
+                                    <option value="">Todos los empleados</option>
+                                    {% for empleado in empleados %}
+                                    <option value="{{ empleado.id }}">{{ empleado.nombre }} {{ empleado.apellido }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn-primary" onclick="registrarAsistencia()">
+                                    <i class="fas fa-clock me-2"></i>Registrar Asistencia
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Empleado</th>
+                                        <th>Fecha</th>
+                                        <th>Hora Entrada</th>
+                                        <th>Hora Salida</th>
+                                        <th>Horas Trabajadas</th>
+                                        <th>Estado</th>
+                                        <th>Observaciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Datos de ejemplo -->
+                                    <tr>
+                                        <td>Carlos Rodríguez</td>
+                                        <td>{{ moment().format('YYYY-MM-DD') if moment else '2025-01-15' }}</td>
+                                        <td>08:00</td>
+                                        <td>17:00</td>
+                                        <td>9 horas</td>
+                                        <td><span class="badge bg-success">Completo</span></td>
+                                        <td>-</td>
+                                    </tr>
+                                    <tr>
+                                        <td>María González</td>
+                                        <td>{{ moment().format('YYYY-MM-DD') if moment else '2025-01-15' }}</td>
+                                        <td>14:00</td>
+                                        <td>-</td>
+                                        <td>En turno</td>
+                                        <td><span class="badge bg-warning">En turno</span></td>
+                                        <td>Turno tarde</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nuevo/Editar Empleado -->
+<div class="modal fade" id="modalEmpleado" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus me-2"></i>
+                    <span id="tituloModalEmpleado">Nuevo Empleado</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formEmpleado">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Nombre *</label>
+                                <input type="text" class="form-control" id="nombreEmpleado" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Apellido *</label>
+                                <input type="text" class="form-control" id="apellidoEmpleado" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Código de Empleado *</label>
+                                <input type="text" class="form-control" id="codigoEmpleado" required>
+                                <div class="form-text">Código único del empleado</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Puesto *</label>
+                                <select class="form-select" id="puestoEmpleado" required>
+                                    <option value="">Seleccionar puesto</option>
+                                    {% for puesto in puestos %}
+                                    <option value="{{ puesto.id }}">{{ puesto.nombre_puesto }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" id="emailEmpleado">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Teléfono</label>
+                                <input type="tel" class="form-control" id="telefonoEmpleado">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Fecha de Ingreso *</label>
+                                <input type="date" class="form-control" id="fechaIngresoEmpleado" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Salario Base *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="salarioEmpleado" min="0" step="1000" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Contraseña *</label>
+                        <input type="password" class="form-control" id="passwordEmpleado" required>
+                        <div class="form-text">Contraseña para acceso al sistema</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Guardar Empleado
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nuevo/Editar Puesto -->
+<div class="modal fade" id="modalPuesto" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-briefcase me-2"></i>
+                    <span id="tituloModalPuesto">Nuevo Puesto</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formPuesto">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre del Puesto *</label>
+                        <input type="text" class="form-control" id="nombrePuesto" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea class="form-control" id="descripcionPuesto" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Salario Mínimo *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="salarioMinimoPuesto" min="0" step="1000" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Salario Máximo *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="salarioMaximoPuesto" min="0" step="1000" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Porcentaje de Comisión</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="comisionPuesto" min="0" max="100" step="0.1" value="0">
+                            <span class="input-group-text">%</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Guardar Puesto
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Cambiar Contraseña -->
+<div class="modal fade" id="modalCambiarPassword" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-key me-2"></i>Cambiar Contraseña
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formCambiarPassword">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Empleado</label>
+                        <input type="text" class="form-control" id="empleadoPassword" readonly>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Nueva Contraseña *</label>
+                        <input type="password" class="form-control" id="nuevaPassword" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Confirmar Contraseña *</label>
+                        <input type="password" class="form-control" id="confirmarPassword" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-key me-2"></i>Cambiar Contraseña
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Variables globales
+let empleadoEditando = null;
+let puestoEditando = null;
+
+// Inicialización
+document.addEventListener('DOMContentLoaded', function() {
+    // Calcular estadísticas
+    calcularEstadisticasPersonal();
+    
+    // Filtros
+    document.getElementById('buscarEmpleado').addEventListener('input', filtrarEmpleados);
+    document.getElementById('filtroPuesto').addEventListener('change', filtrarEmpleados);
+    document.getElementById('filtroEstado').addEventListener('change', filtrarEmpleados);
+    
+    // Formularios
+    document.getElementById('formEmpleado').addEventListener('submit', guardarEmpleado);
+    document.getElementById('formPuesto').addEventListener('submit', guardarPuesto);
+    document.getElementById('formCambiarPassword').addEventListener('submit', cambiarPasswordEmpleado);
+    
+    // Validación de salarios en puesto
+    document.getElementById('salarioMinimoPuesto').addEventListener('input', validarSalarios);
+    document.getElementById('salarioMaximoPuesto').addEventListener('input', validarSalarios);
+});
+
+// Filtrar empleados
+function filtrarEmpleados() {
+    const busqueda = document.getElementById('buscarEmpleado').value.toLowerCase();
+    const puesto = document.getElementById('filtroPuesto').value;
+    const estado = document.getElementById('filtroEstado').value;
+    
+    const filas = document.querySelectorAll('#tablaEmpleados tbody tr');
+    
+    filas.forEach(fila => {
+        const nombre = fila.cells[1].textContent.toLowerCase();
+        const puestoFila = fila.dataset.puesto;
+        const estadoFila = fila.dataset.estado;
+        
+        let mostrar = true;
+        
+        if (busqueda && !nombre.includes(busqueda)) {
+            mostrar = false;
+        }
+        
+        if (puesto && puestoFila !== puesto) {
+            mostrar = false;
+        }
+        
+        if (estado && estadoFila !== estado) {
+            mostrar = false;
+        }
+        
+        fila.style.display = mostrar ? '' : 'none';
+    });
+}
+
+// Limpiar filtros
+function limpiarFiltros() {
+    document.getElementById('buscarEmpleado').value = '';
+    document.getElementById('filtroPuesto').value = '';
+    document.getElementById('filtroEstado').value = '';
+    filtrarEmpleados();
+}
+
+// Validar salarios del puesto
+function validarSalarios() {
+    const minimo = parseFloat(document.getElementById('salarioMinimoPuesto').value) || 0;
+    const maximo = parseFloat(document.getElementById('salarioMaximoPuesto').value) || 0;
+    
+    if (minimo > 0 && maximo > 0 && minimo >= maximo) {
+        document.getElementById('salarioMaximoPuesto').setCustomValidity('El salario máximo debe ser mayor al mínimo');
+    } else {
+        document.getElementById('salarioMaximoPuesto').setCustomValidity('');
+    }
+}
+
+// Editar empleado
+function editarEmpleado(id) {
+    empleadoEditando = id;
+    document.getElementById('tituloModalEmpleado').textContent = 'Editar Empleado';
+    
+    // En implementación real, cargar datos del empleado
+    showToast('Función de edición disponible en versión completa', 'info');
+    
+    const modal = new bootstrap.Modal(document.getElementById('modalEmpleado'));
+    modal.show();
+}
+
+// Guardar empleado
+function guardarEmpleado(e) {
+    e.preventDefault();
+    
+    const formData = {
+        nombre: document.getElementById('nombreEmpleado').value,
+        apellido: document.getElementById('apellidoEmpleado').value,
+        codigo: document.getElementById('codigoEmpleado').value,
+        puesto: document.getElementById('puestoEmpleado').value,
+        email: document.getElementById('emailEmpleado').value,
+        telefono: document.getElementById('telefonoEmpleado').value,
+        fechaIngreso: document.getElementById('fechaIngresoEmpleado').value,
+        salario: document.getElementById('salarioEmpleado').value,
+        password: document.getElementById('passwordEmpleado').value
+    };
+    
+    // Validaciones
+    if (!formData.nombre || !formData.apellido || !formData.codigo || !formData.puesto) {
+        showToast('Complete todos los campos obligatorios', 'error');
+        return;
+    }
+    
+    showToast(empleadoEditando ? 'Empleado actualizado correctamente' : 'Empleado creado correctamente', 'success');
+    
+    bootstrap.Modal.getInstance(document.getElementById('modalEmpleado')).hide();
+    document.getElementById('formEmpleado').reset();
+    empleadoEditando = null;
+    
+    setTimeout(() => location.reload(), 1500);
+}
+
+// Ver perfil del empleado
+function verPerfilEmpleado(id) {
+    showToast('Perfil del empleado disponible en versión completa', 'info');
+}
+
+// Cambiar contraseña
+function cambiarPassword(id) {
+    document.getElementById('empleadoPassword').value = 'Empleado #' + id;
+    
+    const modal = new bootstrap.Modal(document.getElementById('modalCambiarPassword'));
+    modal.show();
+}
+
+// Cambiar contraseña del empleado
+function cambiarPasswordEmpleado(e) {
+    e.preventDefault();
+    
+    const nueva = document.getElementById('nuevaPassword').value;
+    const confirmar = document.getElementById('confirmarPassword').value;
+    
+    if (nueva !== confirmar) {
+        showToast('Las contraseñas no coinciden', 'error');
+        return;
+    }
+    
+    if (nueva.length < 6) {
+        showToast('La contraseña debe tener al menos 6 caracteres', 'error');
+        return;
+    }
+    
+    showToast('Contraseña cambiada correctamente', 'success');
+    
+    bootstrap.Modal.getInstance(document.getElementById('modalCambiarPassword')).hide();
+    document.getElementById('formCambiarPassword').reset();
+}
+
+// Activar/Desactivar empleado
+function desactivarEmpleado(id) {
+    if (confirm('¿Está seguro de desactivar este empleado?')) {
+        showToast('Empleado desactivado correctamente', 'success');
+        setTimeout(() => location.reload(), 1500);
+    }
+}
+
+function activarEmpleado(id) {
+    showToast('Empleado activado correctamente', 'success');
+    setTimeout(() => location.reload(), 1500);
+}
+
+// Editar puesto
+function editarPuesto(id) {
+    puestoEditando = id;
+    document.getElementById('tituloModalPuesto').textContent = 'Editar Puesto';
+    
+    showToast('Función de edición disponible en versión completa', 'info');
+    
+    const modal = new bootstrap.Modal(document.getElementById('modalPuesto'));
+    modal.show();
+}
+
+// Guardar puesto
+function guardarPuesto(e) {
+    e.preventDefault();
+    
+    const formData = {
+        nombre: document.getElementById('nombrePuesto').value,
+        descripcion: document.getElementById('descripcionPuesto').value,
+        salarioMinimo: document.getElementById('salarioMinimoPuesto').value,
+        salarioMaximo: document.getElementById('salarioMaximoPuesto').value,
+        comision: document.getElementById('comisionPuesto').value
+    };
+    
+    if (!formData.nombre || !formData.salarioMinimo || !formData.salarioMaximo) {
+        showToast('Complete todos los campos obligatorios', 'error');
+        return;
+    }
+    
+    if (parseFloat(formData.salarioMinimo) >= parseFloat(formData.salarioMaximo)) {
+        showToast('El salario máximo debe ser mayor al mínimo', 'error');
+        return;
+    }
+    
+    showToast(puestoEditando ? 'Puesto actualizado correctamente' : 'Puesto creado correctamente', 'success');
+    
+    bootstrap.Modal.getInstance(document.getElementById('modalPuesto')).hide();
+    document.getElementById('formPuesto').reset();
+    puestoEditando = null;
+    
+    setTimeout(() => location.reload(), 1500);
+}
+
+// Ver empleados del puesto
+function verEmpleadosPuesto(id) {
+    showToast('Lista de empleados del puesto disponible en versión completa', 'info');
+}
+
+// Activar/Desactivar puesto
+function desactivarPuesto(id) {
+    if (confirm('¿Está seguro de desactivar este puesto?')) {
+        showToast('Puesto desactivado correctamente', 'success');
+        setTimeout(() => location.reload(), 1500);
+    }
+}
+
+function activarPuesto(id) {
+    showToast('Puesto activado correctamente', 'success');
+    setTimeout(() => location.reload(), 1500);
+}
+
+// Registrar asistencia
+function registrarAsistencia() {
+    showToast('Función de asistencia disponible en versión completa', 'info');
+}
+
+// Calcular estadísticas de personal
+function calcularEstadisticasPersonal() {
+    // Los valores se calculan en el backend y se muestran directamente
+    // Esta función se puede usar para cálculos adicionales si es necesario
+}
+
+// Función para mostrar notificaciones
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
+    toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    toast.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 3000);
+}
+</script>
+{% endblock %}

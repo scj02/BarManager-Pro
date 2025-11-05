@@ -1,10 +1,10 @@
-# BarManager-Pro
+# BarManager Pro
 
 **Sistema de Gestión Integral para Bares**
 
 Desarrollado por:
-- **Sergio Andrés Valderrama Velez**
-- **Cristian Santiago Cruz Jiménez**
+- **Sergio Valderrama**
+- **Cristian Cruz**
 - **Julian Antonio Mejía Eslava**
 
 **Docente:** Christian Felipe Duarte  

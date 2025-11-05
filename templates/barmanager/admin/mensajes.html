@@ -1,0 +1,775 @@
+{% extends "barmanager/admin/base.html" %}
+
+{% block title %}Mensajes - BarManager Pro{% endblock %}
+
+{% block page_title %}Gestión de Mensajes{% endblock %}
+
+{% block content %}
+<!-- Estadísticas de Mensajes -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <i class="fas fa-envelope fa-2x text-primary mb-2"></i>
+                <h4 class="fw-bold">{{ mensajes|length if mensajes else 24 }}</h4>
+                <small class="text-muted">Total Mensajes</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card-warning">
+            <div class="card-body text-center">
+                <i class="fas fa-envelope-open fa-2x text-warning mb-2"></i>
+                <h4 class="fw-bold">8</h4>
+                <small class="text-muted">Sin Leer</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card-success">
+            <div class="card-body text-center">
+                <i class="fas fa-reply fa-2x text-success mb-2"></i>
+                <h4 class="fw-bold">16</h4>
+                <small class="text-muted">Respondidos</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card-info">
+            <div class="card-body text-center">
+                <i class="fas fa-clock fa-2x text-info mb-2"></i>
+                <h4 class="fw-bold">2.5h</h4>
+                <small class="text-muted">Tiempo Respuesta</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Panel de Control -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-comments me-2"></i>Gestión de Mensajes</h5>
+                <div class="btn-group">
+                    <button class="btn btn-success" onclick="marcarTodosLeidos()">
+                        <i class="fas fa-check-double me-2"></i>Marcar Todos Leídos
+                    </button>
+                    <button class="btn btn-info" onclick="exportarMensajes()">
+                        <i class="fas fa-download me-2"></i>Exportar
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Filtros -->
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <input type="text" class="form-control" id="buscarMensaje" placeholder="Buscar por nombre, email o asunto...">
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="filtroEstado">
+                            <option value="">Todos los estados</option>
+                            <option value="no_leido">No leídos</option>
+                            <option value="leido">Leídos</option>
+                            <option value="respondido">Respondidos</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <input type="date" class="form-control" id="filtroFecha" placeholder="Filtrar por fecha">
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-outline-secondary w-100" onclick="limpiarFiltros()">
+                            <i class="fas fa-eraser me-2"></i>Limpiar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lista de Mensajes -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-inbox me-2"></i>Bandeja de Entrada</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="tablaMensajes">
+                        <thead class="table-dark">
+                            <tr>
+                                <th width="5%">
+                                    <input type="checkbox" class="form-check-input" id="selectAll" onchange="seleccionarTodos()">
+                                </th>
+                                <th width="5%">Estado</th>
+                                <th width="20%">Remitente</th>
+                                <th width="25%">Asunto</th>
+                                <th width="30%">Mensaje</th>
+                                <th width="10%">Fecha</th>
+                                <th width="5%">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Mensajes de ejemplo -->
+                            <tr class="mensaje-no-leido" data-estado="no_leido" data-fecha="2025-01-15">
+                                <td>
+                                    <input type="checkbox" class="form-check-input mensaje-checkbox" value="1">
+                                </td>
+                                <td>
+                                    <i class="fas fa-circle text-warning" title="No leído"></i>
+                                </td>
+                                <td>
+                                    <div>
+                                        <strong>Juan Pérez</strong>
+                                        <br><small class="text-muted">juan.perez@email.com</small>
+                                        <br><small class="text-muted">+57 301 123 4567</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <strong>Consulta sobre reservas</strong>
+                                </td>
+                                <td>
+                                    <small>Hola, me gustaría hacer una reserva para 6 personas el próximo sábado. ¿Tienen disponibilidad?...</small>
+                                </td>
+                                <td>
+                                    <small>15/01/2025<br>14:30</small>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" onclick="verMensaje(1)" title="Ver">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-success" onclick="responderMensaje(1)" title="Responder">
+                                            <i class="fas fa-reply"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" onclick="eliminarMensaje(1)" title="Eliminar">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            
+                            <tr class="mensaje-leido" data-estado="leido" data-fecha="2025-01-14">
+                                <td>
+                                    <input type="checkbox" class="form-check-input mensaje-checkbox" value="2">
+                                </td>
+                                <td>
+                                    <i class="fas fa-circle text-secondary" title="Leído"></i>
+                                </td>
+                                <td>
+                                    <div>
+                                        <strong>María González</strong>
+                                        <br><small class="text-muted">maria.gonzalez@email.com</small>
+                                        <br><small class="text-muted">+57 301 987 6543</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <strong>Felicitaciones por el servicio</strong>
+                                </td>
+                                <td>
+                                    <small>Quería felicitarlos por el excelente servicio que recibimos anoche. Todo estuvo perfecto...</small>
+                                </td>
+                                <td>
+                                    <small>14/01/2025<br>09:15</small>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" onclick="verMensaje(2)" title="Ver">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-success" onclick="responderMensaje(2)" title="Responder">
+                                            <i class="fas fa-reply"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" onclick="eliminarMensaje(2)" title="Eliminar">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            
+                            <tr class="mensaje-respondido" data-estado="respondido" data-fecha="2025-01-13">
+                                <td>
+                                    <input type="checkbox" class="form-check-input mensaje-checkbox" value="3">
+                                </td>
+                                <td>
+                                    <i class="fas fa-circle text-success" title="Respondido"></i>
+                                </td>
+                                <td>
+                                    <div>
+                                        <strong>Carlos Rodríguez</strong>
+                                        <br><small class="text-muted">carlos.rodriguez@email.com</small>
+                                        <br><small class="text-muted">+57 301 555 7890</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <strong>Pregunta sobre el menú</strong>
+                                </td>
+                                <td>
+                                    <small>¿Tienen opciones vegetarianas en su menú? Mi esposa es vegetariana y nos gustaría visitarlos...</small>
+                                </td>
+                                <td>
+                                    <small>13/01/2025<br>16:45</small>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" onclick="verMensaje(3)" title="Ver">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-success" onclick="responderMensaje(3)" title="Responder">
+                                            <i class="fas fa-reply"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" onclick="eliminarMensaje(3)" title="Eliminar">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            
+                            <tr class="mensaje-no-leido" data-estado="no_leido" data-fecha="2025-01-13">
+                                <td>
+                                    <input type="checkbox" class="form-check-input mensaje-checkbox" value="4">
+                                </td>
+                                <td>
+                                    <i class="fas fa-circle text-warning" title="No leído"></i>
+                                </td>
+                                <td>
+                                    <div>
+                                        <strong>Ana Martínez</strong>
+                                        <br><small class="text-muted">ana.martinez@email.com</small>
+                                        <br><small class="text-muted">+57 301 444 5555</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <strong>Evento corporativo</strong>
+                                </td>
+                                <td>
+                                    <small>Estamos interesados en organizar un evento corporativo para 50 personas. ¿Podrían enviarnos información?...</small>
+                                </td>
+                                <td>
+                                    <small>13/01/2025<br>11:20</small>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" onclick="verMensaje(4)" title="Ver">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-success" onclick="responderMensaje(4)" title="Responder">
+                                            <i class="fas fa-reply"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" onclick="eliminarMensaje(4)" title="Eliminar">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            
+                            <tr class="mensaje-leido" data-estado="leido" data-fecha="2025-01-12">
+                                <td>
+                                    <input type="checkbox" class="form-check-input mensaje-checkbox" value="5">
+                                </td>
+                                <td>
+                                    <i class="fas fa-circle text-secondary" title="Leído"></i>
+                                </td>
+                                <td>
+                                    <div>
+                                        <strong>Luis Fernández</strong>
+                                        <br><small class="text-muted">luis.fernandez@email.com</small>
+                                        <br><small class="text-muted">+57 301 666 7777</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <strong>Horarios de atención</strong>
+                                </td>
+                                <td>
+                                    <small>¿Cuáles son sus horarios de atención? ¿Abren los domingos?...</small>
+                                </td>
+                                <td>
+                                    <small>12/01/2025<br>18:30</small>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" onclick="verMensaje(5)" title="Ver">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-success" onclick="responderMensaje(5)" title="Responder">
+                                            <i class="fas fa-reply"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" onclick="eliminarMensaje(5)" title="Eliminar">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Acciones en lote -->
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span id="mensajesSeleccionados">0 mensajes seleccionados</span>
+                            </div>
+                            <div class="btn-group" id="accionesLote" style="display: none;">
+                                <button class="btn btn-sm btn-outline-primary" onclick="marcarLeidosSeleccionados()">
+                                    <i class="fas fa-check me-1"></i>Marcar Leídos
+                                </button>
+                                <button class="btn btn-sm btn-outline-success" onclick="responderSeleccionados()">
+                                    <i class="fas fa-reply me-1"></i>Responder
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="eliminarSeleccionados()">
+                                    <i class="fas fa-trash me-1"></i>Eliminar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ver Mensaje -->
+<div class="modal fade" id="modalVerMensaje" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-envelope-open me-2"></i>Detalle del Mensaje
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="contenidoMensaje">
+                <!-- Contenido dinámico -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" onclick="marcarComoLeido()">
+                    <i class="fas fa-check me-2"></i>Marcar como Leído
+                </button>
+                <button type="button" class="btn btn-success" onclick="abrirRespuesta()">
+                    <i class="fas fa-reply me-2"></i>Responder
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Responder Mensaje -->
+<div class="modal fade" id="modalResponderMensaje" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-reply me-2"></i>Responder Mensaje
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formRespuesta">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Para:</label>
+                                <input type="email" class="form-control" id="emailDestino" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Asunto:</label>
+                                <input type="text" class="form-control" id="asuntoRespuesta" readonly>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Mensaje Original:</label>
+                        <div class="border rounded p-3 bg-light" id="mensajeOriginal">
+                            <!-- Contenido dinámico -->
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Su Respuesta: *</label>
+                        <textarea class="form-control" id="textoRespuesta" rows="8" required placeholder="Escriba su respuesta aquí..."></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Firma:</label>
+                                <select class="form-select" id="firmaRespuesta">
+                                    <option value="estandar">Firma Estándar</option>
+                                    <option value="gerencia">Firma Gerencia</option>
+                                    <option value="atencion">Firma Atención al Cliente</option>
+                                    <option value="personalizada">Personalizada</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Prioridad:</label>
+                                <select class="form-select" id="prioridadRespuesta">
+                                    <option value="normal">Normal</option>
+                                    <option value="alta">Alta</option>
+                                    <option value="urgente">Urgente</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="copiaOculta">
+                        <label class="form-check-label" for="copiaOculta">
+                            Enviar copia a administración
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-outline-primary" onclick="guardarBorrador()">
+                        <i class="fas fa-save me-2"></i>Guardar Borrador
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-paper-plane me-2"></i>Enviar Respuesta
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.mensaje-no-leido {
+    background-color: #fff3cd;
+    font-weight: 500;
+}
+
+.mensaje-leido {
+    background-color: #f8f9fa;
+}
+
+.mensaje-respondido {
+    background-color: #d1ecf1;
+}
+
+.mensaje-no-leido:hover,
+.mensaje-leido:hover,
+.mensaje-respondido:hover {
+    background-color: #e9ecef;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.btn-group-sm .btn {
+    padding: 0.25rem 0.5rem;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Variables globales
+let mensajeActual = null;
+let mensajesSeleccionados = [];
+
+// Inicialización
+document.addEventListener('DOMContentLoaded', function() {
+    // Filtros
+    document.getElementById('buscarMensaje').addEventListener('input', filtrarMensajes);
+    document.getElementById('filtroEstado').addEventListener('change', filtrarMensajes);
+    document.getElementById('filtroFecha').addEventListener('change', filtrarMensajes);
+    
+    // Checkboxes
+    document.querySelectorAll('.mensaje-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', actualizarSeleccion);
+    });
+    
+    // Formulario de respuesta
+    document.getElementById('formRespuesta').addEventListener('submit', enviarRespuesta);
+    
+    // Actualizar contador inicial
+    actualizarSeleccion();
+});
+
+// Filtrar mensajes
+function filtrarMensajes() {
+    const busqueda = document.getElementById('buscarMensaje').value.toLowerCase();
+    const estado = document.getElementById('filtroEstado').value;
+    const fecha = document.getElementById('filtroFecha').value;
+    
+    const filas = document.querySelectorAll('#tablaMensajes tbody tr');
+    
+    filas.forEach(fila => {
+        const texto = fila.textContent.toLowerCase();
+        const estadoFila = fila.dataset.estado;
+        const fechaFila = fila.dataset.fecha;
+        
+        let mostrar = true;
+        
+        if (busqueda && !texto.includes(busqueda)) {
+            mostrar = false;
+        }
+        
+        if (estado && estadoFila !== estado) {
+            mostrar = false;
+        }
+        
+        if (fecha && fechaFila !== fecha) {
+            mostrar = false;
+        }
+        
+        fila.style.display = mostrar ? '' : 'none';
+    });
+}
+
+// Limpiar filtros
+function limpiarFiltros() {
+    document.getElementById('buscarMensaje').value = '';
+    document.getElementById('filtroEstado').value = '';
+    document.getElementById('filtroFecha').value = '';
+    filtrarMensajes();
+}
+
+// Seleccionar todos los mensajes
+function seleccionarTodos() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.mensaje-checkbox');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAll.checked;
+    });
+    
+    actualizarSeleccion();
+}
+
+// Actualizar selección
+function actualizarSeleccion() {
+    const checkboxes = document.querySelectorAll('.mensaje-checkbox:checked');
+    const contador = document.getElementById('mensajesSeleccionados');
+    const acciones = document.getElementById('accionesLote');
+    
+    mensajesSeleccionados = Array.from(checkboxes).map(cb => cb.value);
+    
+    contador.textContent = `${mensajesSeleccionados.length} mensajes seleccionados`;
+    
+    if (mensajesSeleccionados.length > 0) {
+        acciones.style.display = 'block';
+    } else {
+        acciones.style.display = 'none';
+    }
+}
+
+// Ver mensaje
+function verMensaje(id) {
+    mensajeActual = id;
+    
+    // Simular datos del mensaje
+    const contenido = document.getElementById('contenidoMensaje');
+    contenido.innerHTML = `
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Información del Remitente</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-6">
+                                <strong>Nombre:</strong><br>
+                                Juan Pérez
+                            </div>
+                            <div class="col-6">
+                                <strong>Email:</strong><br>
+                                juan.perez@email.com
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-6">
+                                <strong>Teléfono:</strong><br>
+                                +57 301 123 4567
+                            </div>
+                            <div class="col-6">
+                                <strong>Fecha:</strong><br>
+                                15/01/2025 14:30
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Estado del Mensaje</h6>
+                    </div>
+                    <div class="card-body text-center">
+                        <i class="fas fa-circle text-warning fa-2x mb-2"></i>
+                        <br><strong>No Leído</strong>
+                        <br><small class="text-muted">Recibido hace 2 horas</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Asunto: Consulta sobre reservas</h6>
+                    </div>
+                    <div class="card-body">
+                        <p>Hola,</p>
+                        <p>Me gustaría hacer una reserva para 6 personas el próximo sábado 18 de enero. ¿Tienen disponibilidad para las 8:00 PM?</p>
+                        <p>También me gustaría saber si manejan algún menú especial para celebraciones, ya que es para celebrar un cumpleaños.</p>
+                        <p>Quedo atento a su respuesta.</p>
+                        <p>Saludos cordiales,<br>Juan Pérez</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const modal = new bootstrap.Modal(document.getElementById('modalVerMensaje'));
+    modal.show();
+}
+
+// Responder mensaje
+function responderMensaje(id) {
+    mensajeActual = id;
+    
+    // Simular datos para la respuesta
+    document.getElementById('emailDestino').value = 'juan.perez@email.com';
+    document.getElementById('asuntoRespuesta').value = 'Re: Consulta sobre reservas';
+    
+    document.getElementById('mensajeOriginal').innerHTML = `
+        <strong>De:</strong> Juan Pérez &lt;juan.perez@email.com&gt;<br>
+        <strong>Fecha:</strong> 15/01/2025 14:30<br>
+        <strong>Asunto:</strong> Consulta sobre reservas<br><br>
+        Hola, me gustaría hacer una reserva para 6 personas el próximo sábado 18 de enero. ¿Tienen disponibilidad para las 8:00 PM?
+        También me gustaría saber si manejan algún menú especial para celebraciones, ya que es para celebrar un cumpleaños.
+    `;
+    
+    // Cerrar modal anterior si está abierto
+    const modalVer = bootstrap.Modal.getInstance(document.getElementById('modalVerMensaje'));
+    if (modalVer) {
+        modalVer.hide();
+    }
+    
+    const modal = new bootstrap.Modal(document.getElementById('modalResponderMensaje'));
+    modal.show();
+}
+
+// Marcar como leído
+function marcarComoLeido() {
+    showToast(`Mensaje ${mensajeActual} marcado como leído`, 'success');
+    
+    // Cerrar modal
+    bootstrap.Modal.getInstance(document.getElementById('modalVerMensaje')).hide();
+    
+    // Actualizar interfaz
+    setTimeout(() => location.reload(), 1500);
+}
+
+// Abrir respuesta desde el modal de ver mensaje
+function abrirRespuesta() {
+    responderMensaje(mensajeActual);
+}
+
+// Enviar respuesta
+function enviarRespuesta(e) {
+    e.preventDefault();
+    
+    const textoRespuesta = document.getElementById('textoRespuesta').value;
+    const firma = document.getElementById('firmaRespuesta').value;
+    const prioridad = document.getElementById('prioridadRespuesta').value;
+    
+    if (!textoRespuesta.trim()) {
+        showToast('Debe escribir una respuesta', 'error');
+        return;
+    }
+    
+    showToast('Respuesta enviada correctamente', 'success');
+    
+    // Cerrar modal y limpiar formulario
+    bootstrap.Modal.getInstance(document.getElementById('modalResponderMensaje')).hide();
+    document.getElementById('formRespuesta').reset();
+    
+    setTimeout(() => location.reload(), 1500);
+}
+
+// Guardar borrador
+function guardarBorrador() {
+    showToast('Borrador guardado correctamente', 'info');
+}
+
+// Eliminar mensaje
+function eliminarMensaje(id) {
+    if (confirm('¿Está seguro de eliminar este mensaje?')) {
+        showToast(`Mensaje ${id} eliminado correctamente`, 'success');
+        setTimeout(() => location.reload(), 1500);
+    }
+}
+
+// Marcar todos como leídos
+function marcarTodosLeidos() {
+    if (confirm('¿Marcar todos los mensajes como leídos?')) {
+        showToast('Todos los mensajes marcados como leídos', 'success');
+        setTimeout(() => location.reload(), 1500);
+    }
+}
+
+// Acciones en lote
+function marcarLeidosSeleccionados() {
+    if (mensajesSeleccionados.length === 0) return;
+    
+    showToast(`${mensajesSeleccionados.length} mensajes marcados como leídos`, 'success');
+    setTimeout(() => location.reload(), 1500);
+}
+
+function responderSeleccionados() {
+    if (mensajesSeleccionados.length === 0) return;
+    
+    showToast('Función de respuesta múltiple disponible en versión completa', 'info');
+}
+
+function eliminarSeleccionados() {
+    if (mensajesSeleccionados.length === 0) return;
+    
+    if (confirm(`¿Eliminar ${mensajesSeleccionados.length} mensajes seleccionados?`)) {
+        showToast(`${mensajesSeleccionados.length} mensajes eliminados`, 'success');
+        setTimeout(() => location.reload(), 1500);
+    }
+}
+
+// Exportar mensajes
+function exportarMensajes() {
+    showToast('Exportando mensajes a Excel...', 'success');
+}
+
+// Función para mostrar notificaciones
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
+    toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    toast.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 3000);
+}
+</script>
+{% endblock %}

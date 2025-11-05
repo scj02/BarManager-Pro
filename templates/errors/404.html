@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Página no encontrada - El Rincón del Sabor{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 text-center">
+            <div class="mb-4">
+                <i class="fas fa-utensils fa-5x text-muted mb-4"></i>
+                <h1 class="display-1 fw-bold text-primary">404</h1>
+                <h2 class="mb-4">¡Ups! Página no encontrada</h2>
+                <p class="lead text-muted mb-4">
+                    La página que buscas no existe o ha sido movida. 
+                    ¿Qué tal si echas un vistazo a nuestro delicioso menú?
+                </p>
+                <div class="d-flex justify-content-center gap-3 flex-wrap">
+                    <a href="{{ url_for('index') }}" class="btn btn-primary">
+                        <i class="fas fa-home me-2"></i>Volver al Inicio
+                    </a>
+                    <a href="{{ url_for('menu') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-book-open me-2"></i>Ver Menú
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

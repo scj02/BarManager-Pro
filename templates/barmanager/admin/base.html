@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Panel Administrativo - BarManager Pro{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/barmanager.css') }}">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block admin-sidebar collapse">
+                <div class="position-sticky pt-3">
+                    <div class="text-center mb-4">
+                        <h4 class="text-white fw-bold">
+                            <i class="fas fa-chart-bar me-2"></i>BarManager Pro
+                        </h4>
+                        <small class="text-white-50">Panel Administrativo</small>
+                    </div>
+                    
+                    <ul class="nav flex-column px-3">
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'admin_dashboard' %}active{% endif %}" 
+                               href="{{ url_for('admin_dashboard') }}">
+                                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                            </a>
+                        </li>
+                        
+                        <li class="nav-item mt-3">
+                            <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-white-50">
+                                <span>GESTIÓN OPERATIVA</span>
+                            </h6>
+                        </li>
+                        
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'admin_inventario' %}active{% endif %}" 
+                               href="{{ url_for('admin_inventario') }}">
+                                <i class="fas fa-boxes me-2"></i>Inventario
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'admin_ventas' %}active{% endif %}" 
+                               href="{{ url_for('admin_ventas') }}">
+                                <i class="fas fa-cash-register me-2"></i>Ventas y Pedidos
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'admin_reservas' %}active{% endif %}" 
+                               href="{{ url_for('admin_reservas') }}">
+                                <i class="fas fa-table me-2"></i>Mesas y Reservas
+                            </a>
+                        </li>
+                        
+                        <li class="nav-item mt-3">
+                            <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-white-50">
+                                <span>ADMINISTRACIÓN</span>
+                            </h6>
+                        </li>
+                        
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'admin_personal' %}active{% endif %}" 
+                               href="{{ url_for('admin_personal') }}">
+                                <i class="fas fa-users me-2"></i>Personal
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'admin_clientes' %}active{% endif %}" 
+                               href="{{ url_for('admin_clientes') }}">
+                                <i class="fas fa-address-book me-2"></i>Clientes
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'admin_proveedores' %}active{% endif %}" 
+                               href="{{ url_for('admin_proveedores') }}">
+                                <i class="fas fa-truck me-2"></i>Proveedores
+                            </a>
+                        </li>
+                        
+                        <li class="nav-item mt-3">
+                            <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-white-50">
+                                <span>REPORTES Y ANÁLISIS</span>
+                            </h6>
+                        </li>
+                        
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'admin_reportes' %}active{% endif %}" 
+                               href="{{ url_for('admin_reportes') }}">
+                                <i class="fas fa-chart-line me-2"></i>Reportes
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'admin_mensajes' %}active{% endif %}" 
+                               href="{{ url_for('admin_mensajes') }}">
+                                <i class="fas fa-envelope me-2"></i>Mensajes
+                                {% if mensajes_no_leidos and mensajes_no_leidos > 0 %}
+                                <span class="badge bg-warning ms-1">{{ mensajes_no_leidos }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'admin_mensajes' %}active{% endif %}" 
+                               href="{{ url_for('admin_mensajes') }}">
+                                <i class="fas fa-envelope me-2"></i>Mensajes
+                            </a>
+                        </li>
+                        
+                        <li class="nav-item mt-4">
+                            <hr class="text-white-50">
+                        </li>
+                        
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('index') }}" target="_blank">
+                                <i class="fas fa-external-link-alt me-2"></i>Ver Sitio Web
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_logout') }}">
+                                <i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión
+                            </a>
+                        </li>
+                    </ul>
+                    
+                    <div class="mt-auto p-3">
+                        <div class="text-center">
+                            <small class="text-white-50">
+                                Conectado como:<br>
+                                <strong class="text-white">{{ session.empleado_nombre if session.empleado_nombre else 'Usuario' }}</strong>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
+                <!-- Top Navigation -->
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">{% block page_title %}Dashboard{% endblock %}</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <div class="btn-group me-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="location.reload()">
+                                <i class="fas fa-sync-alt me-1"></i>Actualizar
+                            </button>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user me-1"></i>{{ session.empleado_nombre if session.empleado_nombre else 'Usuario' }}
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><h6 class="dropdown-header">BarManager Pro v1.0</h6></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('index') }}" target="_blank">
+                                    <i class="fas fa-external-link-alt me-2"></i>Ver Sitio Web
+                                </a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_dashboard') }}">
+                                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_logout') }}">
+                                    <i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión
+                                </a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <!-- Page Content -->
+                {% block content %}{% endblock %}
+                
+                <!-- Footer -->
+                <footer class="mt-5 py-4 border-top">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="text-muted mb-0">
+                                <strong>BarManager Pro</strong> - Sistema de Gestión Integral para Bares
+                            </p>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <small class="text-muted">
+                                Desarrollado por: Sergio Valderrama, Cristian Cruz, Julian Antonio Mejía Eslava<br>
+                                Septiembre 2025 - Bogotá D.C.
+                            </small>
+                        </div>
+                    </div>
+                </footer>
+            </main>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/barmanager.js') }}"></script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

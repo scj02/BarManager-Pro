@@ -1,0 +1,279 @@
+{% extends "barmanager/base.html" %}
+
+{% block title %}Contacto - BarManager Pro{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Header -->
+    <div class="row text-center mb-5">
+        <div class="col-12">
+            <h1 class="display-4 fw-bold mb-3">Contáctanos</h1>
+            <p class="lead text-muted">Estamos aquí para ayudarte. ¡Escríbenos!</p>
+        </div>
+    </div>
+
+    <div class="row g-5">
+        <!-- Contact Form -->
+        <div class="col-lg-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-primary text-white text-center py-4">
+                    <h3 class="mb-0"><i class="fas fa-envelope me-2"></i>Envíanos un Mensaje</h3>
+                </div>
+                <div class="card-body p-5">
+                    <form id="contactForm">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="contactName" class="form-label fw-bold">
+                                    <i class="fas fa-user me-2"></i>Nombre Completo *
+                                </label>
+                                <input type="text" class="form-control" id="contactName" required>
+                                <div class="invalid-feedback">Por favor ingresa tu nombre.</div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="contactEmail" class="form-label fw-bold">
+                                    <i class="fas fa-envelope me-2"></i>Email *
+                                </label>
+                                <input type="email" class="form-control" id="contactEmail" required>
+                                <div class="invalid-feedback">Por favor ingresa un email válido.</div>
+                            </div>
+                            
+                            <div class="col-12">
+                                <label for="contactSubject" class="form-label fw-bold">
+                                    <i class="fas fa-tag me-2"></i>Asunto *
+                                </label>
+                                <select class="form-select" id="contactSubject" required>
+                                    <option value="">Selecciona un asunto...</option>
+                                    <option value="Consulta sobre Reservas">Consulta sobre Reservas</option>
+                                    <option value="Preguntas sobre el Menú">Preguntas sobre el Menú</option>
+                                    <option value="Eventos Especiales">Eventos Especiales</option>
+                                    <option value="Sugerencias">Sugerencias</option>
+                                    <option value="Quejas o Reclamos">Quejas o Reclamos</option>
+                                    <option value="Información del Sistema">Información del Sistema</option>
+                                    <option value="Otro">Otro</option>
+                                </select>
+                                <div class="invalid-feedback">Por favor selecciona un asunto.</div>
+                            </div>
+                            
+                            <div class="col-12">
+                                <label for="contactMessage" class="form-label fw-bold">
+                                    <i class="fas fa-comment me-2"></i>Mensaje *
+                                </label>
+                                <textarea class="form-control" id="contactMessage" rows="5" 
+                                          placeholder="Escribe tu mensaje aquí..." required></textarea>
+                                <div class="invalid-feedback">Por favor escribe tu mensaje.</div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-paper-plane me-2"></i>Enviar Mensaje
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Contact Information -->
+        <div class="col-lg-4">
+            <!-- Contact Details -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h4 class="fw-bold mb-4"><i class="fas fa-info-circle me-2"></i>Información de Contacto</h4>
+                    
+                    <div class="d-flex align-items-start mb-3">
+                        <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+                            <i class="fas fa-map-marker-alt text-white"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-1">Dirección</h6>
+                            <p class="text-muted mb-0">Av. Empresarial 456<br>Bogotá D.C., Colombia</p>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex align-items-start mb-3">
+                        <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+                            <i class="fas fa-phone text-white"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-1">Teléfono</h6>
+                            <p class="text-muted mb-0">+57 301 456 7890</p>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex align-items-start mb-3">
+                        <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+                            <i class="fas fa-envelope text-white"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-1">Email</h6>
+                            <p class="text-muted mb-0">info@barmanagerpro.com</p>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex align-items-start">
+                        <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+                            <i class="fas fa-clock text-white"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-1">Horarios</h6>
+                            <p class="text-muted mb-0">
+                                <strong>Lun - Jue:</strong> 6:00 PM - 12:00 AM<br>
+                                <strong>Vie - Sáb:</strong> 6:00 PM - 2:00 AM<br>
+                                <strong>Domingo:</strong> 6:00 PM - 11:00 PM
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- System Info -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4 text-center">
+                    <h5 class="fw-bold mb-3"><i class="fas fa-chart-bar me-2"></i>BarManager Pro</h5>
+                    <p class="text-muted small">
+                        Sistema de Gestión Integral para Bares<br>
+                        Desarrollado por:<br>
+                        <strong>Sergio Valderrama</strong><br>
+                        <strong>Cristian Cruz</strong><br>
+                        <strong>Julian Antonio Mejía Eslava</strong>
+                    </p>
+                    <p class="text-muted small">
+                        <strong>Docente:</strong> Christian Felipe Duarte<br>
+                        Septiembre 2025 - Bogotá D.C.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3">Acciones Rápidas</h5>
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('reservas') }}" class="btn btn-warning">
+                            <i class="fas fa-calendar-alt me-2"></i>Hacer Reserva
+                        </a>
+                        <a href="{{ url_for('menu') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-utensils me-2"></i>Ver Menú
+                        </a>
+                        <a href="{{ url_for('admin_login') }}" class="btn btn-outline-success">
+                            <i class="fas fa-user-shield me-2"></i>Panel Admin
+                        </a>
+                        <a href="tel:+573014567890" class="btn btn-outline-info">
+                            <i class="fas fa-phone me-2"></i>Llamar Ahora
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="contactSuccessModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-check-circle me-2"></i>¡Mensaje Enviado!
+                </h5>
+            </div>
+            <div class="modal-body text-center">
+                <div class="mb-4">
+                    <i class="fas fa-envelope-circle-check fa-4x text-success mb-3"></i>
+                    <h4>¡Gracias por contactarnos!</h4>
+                    <p class="text-muted">Hemos recibido tu mensaje y te responderemos pronto.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" data-bs-dismiss="modal">Entendido</button>
+                <a href="{{ url_for('index') }}" class="btn btn-outline-success">Volver al Inicio</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('contactForm');
+    
+    form.addEventListener('submit', handleSubmit);
+});
+
+function handleSubmit(e) {
+    e.preventDefault();
+    
+    if (!form.checkValidity()) {
+        e.stopPropagation();
+        form.classList.add('was-validated');
+        return;
+    }
+    
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    
+    // Show loading
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Enviando...';
+    
+    const formData = {
+        nombre: document.getElementById('contactName').value,
+        email: document.getElementById('contactEmail').value,
+        asunto: document.getElementById('contactSubject').value,
+        mensaje: document.getElementById('contactMessage').value
+    };
+    
+    fetch('/api/contacto', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccessModal();
+            form.reset();
+            form.classList.remove('was-validated');
+        } else {
+            throw new Error(data.error || 'Error al enviar el mensaje');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error al enviar el mensaje. Por favor inténtalo de nuevo.', 'danger');
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    });
+}
+
+function showSuccessModal() {
+    const modal = new bootstrap.Modal(document.getElementById('contactSuccessModal'));
+    modal.show();
+}
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.container');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

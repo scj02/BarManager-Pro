@@ -1,0 +1,273 @@
+{% extends "barmanager/base.html" %}
+
+{% block title %}BarManager Pro - Sistema de Gestión Integral para Bares{% endblock %}
+
+{% block main_class %}{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section bg-gradient-primary text-white d-flex align-items-center" style="min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h1 class="display-3 fw-bold mb-4">BarManager Pro</h1>
+                <p class="lead mb-4">Sistema integral de gestión para bares y restaurantes. Automatiza tus operaciones, controla tu inventario y maximiza tus ganancias con nuestra solución completa.</p>
+                <div class="d-flex gap-3 flex-wrap">
+                    <a href="{{ url_for('menu') }}" class="btn btn-warning btn-lg">
+                        <i class="fas fa-utensils me-2"></i>Ver Menú
+                    </a>
+                    <a href="{{ url_for('reservas') }}" class="btn btn-outline-light btn-lg">
+                        <i class="fas fa-calendar-alt me-2"></i>Hacer Reserva
+                    </a>
+                    <a href="{{ url_for('admin_login') }}" class="btn btn-success btn-lg">
+                        <i class="fas fa-user-shield me-2"></i>Panel Admin
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="text-center">
+                    <i class="fas fa-chart-bar fa-10x opacity-75"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Módulos del Sistema -->
+<section class="py-5">
+    <div class="container">
+        <div class="row text-center mb-5">
+            <div class="col-12">
+                <h2 class="display-5 fw-bold mb-3">Módulos del Sistema</h2>
+                <p class="lead text-muted">Gestión completa para todas las operaciones de tu bar</p>
+            </div>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-lg-4 col-md-6">
+                <div class="card h-100 border-0 shadow-sm text-center">
+                    <div class="card-body p-4">
+                        <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                            <i class="fas fa-boxes fa-2x text-white"></i>
+                        </div>
+                        <h4 class="fw-bold mb-3">Gestión de Inventario</h4>
+                        <p class="text-muted">Control completo de productos, categorías, alertas automáticas de stock bajo y gestión de proveedores.</p>
+                        <ul class="list-unstyled text-start">
+                            <li><i class="fas fa-check text-success me-2"></i>Alertas automáticas de stock</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Gestión de proveedores</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Historial de movimientos</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 col-md-6">
+                <div class="card h-100 border-0 shadow-sm text-center">
+                    <div class="card-body p-4">
+                        <div class="bg-success rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                            <i class="fas fa-cash-register fa-2x text-white"></i>
+                        </div>
+                        <h4 class="fw-bold mb-3">Sistema de Ventas</h4>
+                        <p class="text-muted">Sistema de pedidos por mesa, generación de facturas y aplicación de descuentos y promociones.</p>
+                        <ul class="list-unstyled text-start">
+                            <li><i class="fas fa-check text-success me-2"></i>Pedidos por mesa</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Facturación automática</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Descuentos y promociones</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 col-md-6">
+                <div class="card h-100 border-0 shadow-sm text-center">
+                    <div class="card-body p-4">
+                        <div class="bg-info rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                            <i class="fas fa-users fa-2x text-white"></i>
+                        </div>
+                        <h4 class="fw-bold mb-3">Gestión de Personal</h4>
+                        <p class="text-muted">Registro de empleados, control de turnos, cálculo de comisiones y gestión de permisos.</p>
+                        <ul class="list-unstyled text-start">
+                            <li><i class="fas fa-check text-success me-2"></i>Control de turnos</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Cálculo de comisiones</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Gestión de permisos</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 col-md-6">
+                <div class="card h-100 border-0 shadow-sm text-center">
+                    <div class="card-body p-4">
+                        <div class="bg-warning rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                            <i class="fas fa-address-book fa-2x text-dark"></i>
+                        </div>
+                        <h4 class="fw-bold mb-3">Base de Datos de Clientes</h4>
+                        <p class="text-muted">Registro completo de clientes con historial de compras y preferencias personalizadas.</p>
+                        <ul class="list-unstyled text-start">
+                            <li><i class="fas fa-check text-success me-2"></i>Historial de compras</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Preferencias del cliente</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Programas de fidelidad</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 col-md-6">
+                <div class="card h-100 border-0 shadow-sm text-center">
+                    <div class="card-body p-4">
+                        <div class="bg-danger rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                            <i class="fas fa-table fa-2x text-white"></i>
+                        </div>
+                        <h4 class="fw-bold mb-3">Gestión de Mesas</h4>
+                        <p class="text-muted">Control de mesas, reservas automáticas y optimización de la ocupación del local.</p>
+                        <ul class="list-unstyled text-start">
+                            <li><i class="fas fa-check text-success me-2"></i>Reservas online</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Control de ocupación</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Liberación automática</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 col-md-6">
+                <div class="card h-100 border-0 shadow-sm text-center">
+                    <div class="card-body p-4">
+                        <div class="bg-secondary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                            <i class="fas fa-chart-line fa-2x text-white"></i>
+                        </div>
+                        <h4 class="fw-bold mb-3">Reportes Analíticos</h4>
+                        <p class="text-muted">Reportes detallados de ventas, desempeño del personal y análisis de tendencias.</p>
+                        <ul class="list-unstyled text-start">
+                            <li><i class="fas fa-check text-success me-2"></i>Reportes de ventas</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Análisis de desempeño</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Tendencias del negocio</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Características Técnicas -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row text-center mb-5">
+            <div class="col-12">
+                <h2 class="display-5 fw-bold mb-3">Características Técnicas</h2>
+                <p class="lead text-muted">Tecnología moderna para un rendimiento óptimo</p>
+            </div>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="text-center">
+                    <i class="fas fa-database fa-3x text-primary mb-3"></i>
+                    <h5 class="fw-bold">Base de Datos Robusta</h5>
+                    <p class="text-muted">PostgreSQL para máxima confiabilidad y rendimiento en el manejo de datos.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-center">
+                    <i class="fas fa-shield-alt fa-3x text-success mb-3"></i>
+                    <h5 class="fw-bold">Seguridad Avanzada</h5>
+                    <p class="text-muted">Autenticación segura, logs de auditoría y protección de datos sensibles.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-center">
+                    <i class="fas fa-mobile-alt fa-3x text-info mb-3"></i>
+                    <h5 class="fw-bold">Diseño Responsive</h5>
+                    <p class="text-muted">Interfaz adaptable para computadoras, tablets y dispositivos móviles.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Estadísticas del Sistema -->
+<section class="py-5">
+    <div class="container">
+        <div class="row text-center">
+            <div class="col-md-3 mb-4">
+                <div class="card border-0 bg-primary text-white">
+                    <div class="card-body">
+                        <i class="fas fa-users fa-3x mb-3"></i>
+                        <h3 class="fw-bold">10-15</h3>
+                        <p class="mb-0">Mesas Gestionadas</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="card border-0 bg-success text-white">
+                    <div class="card-body">
+                        <i class="fas fa-user-friends fa-3x mb-3"></i>
+                        <h3 class="fw-bold">50-100</h3>
+                        <p class="mb-0">Clientes Diarios</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="card border-0 bg-warning text-dark">
+                    <div class="card-body">
+                        <i class="fas fa-box fa-3x mb-3"></i>
+                        <h3 class="fw-bold">30-100</h3>
+                        <p class="mb-0">Productos en Inventario</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="card border-0 bg-info text-white">
+                    <div class="card-body">
+                        <i class="fas fa-clock fa-3x mb-3"></i>
+                        <h3 class="fw-bold">12</h3>
+                        <p class="mb-0">Horas de Operación</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Call to Action -->
+<section class="py-5 bg-primary text-white">
+    <div class="container text-center">
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <h2 class="display-5 fw-bold mb-4">¿Listo para optimizar tu bar?</h2>
+                <p class="lead mb-4">
+                    Únete a los bares que ya están maximizando sus ganancias con BarManager Pro. 
+                    Sistema completo, fácil de usar y resultados garantizados.
+                </p>
+                <div class="d-flex justify-content-center gap-3 flex-wrap">
+                    <a href="{{ url_for('admin_login') }}" class="btn btn-warning btn-lg">
+                        <i class="fas fa-rocket me-2"></i>Acceder al Sistema
+                    </a>
+                    <a href="{{ url_for('contacto') }}" class="btn btn-outline-light btn-lg">
+                        <i class="fas fa-envelope me-2"></i>Solicitar Demo
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Animaciones suaves para las tarjetas
+    const cards = document.querySelectorAll('.card');
+    cards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            card.style.transition = 'all 0.6s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+});
+</script>
+{% endblock %}

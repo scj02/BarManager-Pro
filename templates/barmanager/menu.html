@@ -1,0 +1,237 @@
+{% extends "barmanager/base.html" %}
+
+{% block title %}Menú - BarManager Pro{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Header -->
+    <div class="row text-center mb-5">
+        <div class="col-12">
+            <h1 class="display-4 fw-bold mb-3">Nuestro Menú</h1>
+            <p class="lead text-muted">Descubre los auténticos sabores de Colombia</p>
+        </div>
+    </div>
+
+    <!-- Category Filter -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-center flex-wrap gap-2">
+                <button class="btn btn-outline-primary active" data-category="all">
+                    <i class="fas fa-utensils me-2"></i>Todos
+                </button>
+                <button class="btn btn-outline-primary" data-category="Bebidas Alcohólicas">
+                    <i class="fas fa-glass-cheers me-2"></i>Bebidas Alcohólicas
+                </button>
+                <button class="btn btn-outline-primary" data-category="Bebidas No Alcohólicas">
+                    <i class="fas fa-coffee me-2"></i>Bebidas No Alcohólicas
+                </button>
+                <button class="btn btn-outline-primary" data-category="Platos Principales">
+                    <i class="fas fa-drumstick-bite me-2"></i>Platos Principales
+                </button>
+                <button class="btn btn-outline-primary" data-category="Comida Rápida">
+                    <i class="fas fa-hamburger me-2"></i>Comida Rápida
+                </button>
+                <button class="btn btn-outline-primary" data-category="Postres">
+                    <i class="fas fa-ice-cream me-2"></i>Postres
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div class="text-center" id="loading">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando...</span>
+        </div>
+    </div>
+
+    <!-- Menu Items -->
+    <div class="row g-4" id="menu-items" style="display: none;">
+        <!-- Menu items will be loaded here via JavaScript -->
+    </div>
+
+    <!-- No items message -->
+    <div class="text-center" id="no-items" style="display: none;">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            No hay elementos disponibles en esta categoría.
+        </div>
+    </div>
+</div>
+
+<!-- Menu Item Modal -->
+<div class="modal fade" id="menuItemModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalItemName"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <img id="modalItemImage" src="" alt="" class="img-fluid rounded">
+                    </div>
+                    <div class="col-md-6">
+                        <p id="modalItemDescription" class="text-muted mb-3"></p>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="h4 text-primary mb-0" id="modalItemPrice"></span>
+                            <span class="badge bg-secondary" id="modalItemCategory"></span>
+                        </div>
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            Disponible ahora
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <a href="{{ url_for('reservas') }}" class="btn btn-primary">
+                    <i class="fas fa-calendar-alt me-2"></i>Hacer Reserva
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let allMenuItems = [];
+let currentCategory = 'all';
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadMenuItems();
+    setupCategoryFilters();
+});
+
+function loadMenuItems() {
+    const loading = document.getElementById('loading');
+    const menuContainer = document.getElementById('menu-items');
+    
+    loading.style.display = 'block';
+    menuContainer.style.display = 'none';
+    
+    fetch('/api/productos')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                allMenuItems = data.data;
+                displayMenuItems(allMenuItems);
+            } else {
+                showError('Error al cargar el menú');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showError('Error de conexión');
+        })
+        .finally(() => {
+            loading.style.display = 'none';
+        });
+}
+
+function displayMenuItems(items) {
+    const container = document.getElementById('menu-items');
+    const noItemsMsg = document.getElementById('no-items');
+    
+    if (items.length === 0) {
+        container.style.display = 'none';
+        noItemsMsg.style.display = 'block';
+        return;
+    }
+    
+    noItemsMsg.style.display = 'none';
+    container.style.display = 'flex';
+    container.innerHTML = '';
+    
+    items.forEach(item => {
+        const stockAlert = item.alerta_stock ? '<span class="badge bg-warning text-dark">Stock Bajo</span>' : '';
+        
+        const itemHtml = `
+            <div class="col-lg-4 col-md-6 menu-item" data-category="${item.categoria_nombre}">
+                <div class="card h-100 border-0 shadow-sm menu-card" onclick="showItemModal(${item.id})">
+                    <img src="${item.imagen_url}" 
+                         class="card-img-top" alt="${item.nombre}" 
+                         style="height: 250px; object-fit: cover; cursor: pointer;">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="card-title fw-bold mb-0">${item.nombre}</h5>
+                            <span class="badge bg-primary">${item.categoria_nombre}</span>
+                        </div>
+                        <p class="card-text text-muted small">${item.descripcion}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="h5 text-success mb-0">$${item.precio_venta.toLocaleString()}</span>
+                            <div>
+                                ${stockAlert}
+                                <button class="btn btn-outline-primary btn-sm ms-1" onclick="event.stopPropagation(); showItemModal(${item.id})">
+                                    <i class="fas fa-eye me-1"></i>Ver más
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.innerHTML += itemHtml;
+    });
+}
+
+function setupCategoryFilters() {
+    const filterButtons = document.querySelectorAll('[data-category]');
+    
+    filterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const category = this.getAttribute('data-category');
+            
+            // Update active button
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Filter items
+            filterMenuItems(category);
+        });
+    });
+}
+
+function filterMenuItems(category) {
+    currentCategory = category;
+    
+    if (category === 'all') {
+        displayMenuItems(allMenuItems);
+    } else {
+        const filteredItems = allMenuItems.filter(item => item.categoria_nombre === category);
+        displayMenuItems(filteredItems);
+    }
+}
+
+function showItemModal(itemId) {
+    const item = allMenuItems.find(i => i.id == itemId);
+    if (!item) return;
+    
+    document.getElementById('modalItemName').textContent = item.nombre;
+    document.getElementById('modalItemDescription').textContent = item.descripcion;
+    document.getElementById('modalItemPrice').textContent = `$${item.precio_venta.toLocaleString()}`;
+    document.getElementById('modalItemCategory').textContent = item.categoria_nombre;
+    document.getElementById('modalItemImage').src = item.imagen_url;
+    document.getElementById('modalItemImage').alt = item.nombre;
+    
+    const modal = new bootstrap.Modal(document.getElementById('menuItemModal'));
+    modal.show();
+}
+
+function showError(message) {
+    const container = document.getElementById('menu-items');
+    container.innerHTML = `
+        <div class="col-12">
+            <div class="alert alert-danger text-center">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                ${message}
+            </div>
+        </div>
+    `;
+    container.style.display = 'flex';
+}
+</script>
+{% endblock %}

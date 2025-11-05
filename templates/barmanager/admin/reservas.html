@@ -1,0 +1,932 @@
+{% extends "barmanager/admin/base.html" %}
+
+{% block title %}Reservas - BarManager Pro{% endblock %}
+
+{% block page_title %}Gestión de Reservas{% endblock %}
+
+{% block content %}
+<!-- Estadísticas de Reservas -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <i class="fas fa-calendar-alt fa-2x text-primary mb-2"></i>
+                <h4 class="fw-bold">{{ reservas|length if reservas else 12 }}</h4>
+                <small class="text-muted">Reservas Hoy</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card-warning">
+            <div class="card-body text-center">
+                <i class="fas fa-clock fa-2x text-warning mb-2"></i>
+                <h4 class="fw-bold">5</h4>
+                <small class="text-muted">Pendientes</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card-success">
+            <div class="card-body text-center">
+                <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                <h4 class="fw-bold">7</h4>
+                <small class="text-muted">Confirmadas</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card-info">
+            <div class="card-body text-center">
+                <i class="fas fa-table fa-2x text-info mb-2"></i>
+                <h4 class="fw-bold">{{ mesas|length if mesas else 15 }}</h4>
+                <small class="text-muted">Mesas Disponibles</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Panel de Control -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-calendar-check me-2"></i>Gestión de Reservas</h5>
+                <div class="btn-group">
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalReserva">
+                        <i class="fas fa-plus me-2"></i>Nueva Reserva
+                    </button>
+                    <button class="btn btn-info" onclick="verCalendario()">
+                        <i class="fas fa-calendar me-2"></i>Calendario
+                    </button>
+                    <button class="btn btn-warning" onclick="gestionarMesas()">
+                        <i class="fas fa-table me-2"></i>Gestionar Mesas
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Filtros -->
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <input type="date" class="form-control" id="filtroFecha" value="{{ moment().format('YYYY-MM-DD') if moment else '' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="filtroEstado">
+                            <option value="">Todos los estados</option>
+                            <option value="PENDIENTE">Pendiente</option>
+                            <option value="CONFIRMADA">Confirmada</option>
+                            <option value="CANCELADA">Cancelada</option>
+                            <option value="COMPLETADA">Completada</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="filtroMesa">
+                            <option value="">Todas las mesas</option>
+                            {% for mesa in mesas %}
+                            <option value="{{ mesa.id }}">Mesa {{ mesa.numero_mesa }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <input type="text" class="form-control" id="buscarReserva" placeholder="Buscar cliente...">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs de Gestión -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" id="reservasTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="lista-tab" data-bs-toggle="tab" data-bs-target="#lista" type="button" role="tab">
+                            <i class="fas fa-list me-2"></i>Lista de Reservas
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="calendario-tab" data-bs-toggle="tab" data-bs-target="#calendario" type="button" role="tab">
+                            <i class="fas fa-calendar-alt me-2"></i>Vista Calendario
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="mesas-tab" data-bs-toggle="tab" data-bs-target="#mesas" type="button" role="tab">
+                            <i class="fas fa-table me-2"></i>Estado de Mesas
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content" id="reservasTabsContent">
+                    <!-- Tab Lista de Reservas -->
+                    <div class="tab-pane fade show active" id="lista" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="tablaReservas">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Reserva</th>
+                                        <th>Cliente</th>
+                                        <th>Mesa</th>
+                                        <th>Fecha</th>
+                                        <th>Hora</th>
+                                        <th>Personas</th>
+                                        <th>Estado</th>
+                                        <th>Observaciones</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Reservas de ejemplo -->
+                                    <tr data-estado="CONFIRMADA" data-mesa="5" data-fecha="2025-01-15">
+                                        <td><strong>#RES001</strong></td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-circle me-2">JP</div>
+                                                <div>
+                                                    <strong>Juan Pérez</strong>
+                                                    <br><small class="text-muted">+57 301 123 4567</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">Mesa 5</span>
+                                            <br><small class="text-muted">4 personas</small>
+                                        </td>
+                                        <td>15/01/2025</td>
+                                        <td>19:30</td>
+                                        <td>4</td>
+                                        <td>
+                                            <select class="form-select form-select-sm" onchange="cambiarEstadoReserva('RES001', this.value)">
+                                                <option value="PENDIENTE">Pendiente</option>
+                                                <option value="CONFIRMADA" selected>Confirmada</option>
+                                                <option value="CANCELADA">Cancelada</option>
+                                                <option value="COMPLETADA">Completada</option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <small>Celebración de aniversario</small>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" onclick="editarReserva('RES001')" title="Editar">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-outline-success" onclick="confirmarReserva('RES001')" title="Confirmar">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                                <button class="btn btn-outline-info" onclick="enviarRecordatorio('RES001')" title="Recordatorio">
+                                                    <i class="fas fa-bell"></i>
+                                                </button>
+                                                <button class="btn btn-outline-danger" onclick="cancelarReserva('RES001')" title="Cancelar">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr data-estado="PENDIENTE" data-mesa="8" data-fecha="2025-01-15">
+                                        <td><strong>#RES002</strong></td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-circle me-2">MG</div>
+                                                <div>
+                                                    <strong>María González</strong>
+                                                    <br><small class="text-muted">+57 301 987 6543</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">Mesa 8</span>
+                                            <br><small class="text-muted">6 personas</small>
+                                        </td>
+                                        <td>15/01/2025</td>
+                                        <td>20:00</td>
+                                        <td>6</td>
+                                        <td>
+                                            <select class="form-select form-select-sm" onchange="cambiarEstadoReserva('RES002', this.value)">
+                                                <option value="PENDIENTE" selected>Pendiente</option>
+                                                <option value="CONFIRMADA">Confirmada</option>
+                                                <option value="CANCELADA">Cancelada</option>
+                                                <option value="COMPLETADA">Completada</option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <small>Reunión de trabajo</small>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" onclick="editarReserva('RES002')" title="Editar">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-outline-success" onclick="confirmarReserva('RES002')" title="Confirmar">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                                <button class="btn btn-outline-info" onclick="enviarRecordatorio('RES002')" title="Recordatorio">
+                                                    <i class="fas fa-bell"></i>
+                                                </button>
+                                                <button class="btn btn-outline-danger" onclick="cancelarReserva('RES002')" title="Cancelar">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr data-estado="CONFIRMADA" data-mesa="3" data-fecha="2025-01-15">
+                                        <td><strong>#RES003</strong></td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-circle me-2">CR</div>
+                                                <div>
+                                                    <strong>Carlos Rodríguez</strong>
+                                                    <br><small class="text-muted">+57 301 555 7890</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">Mesa 3</span>
+                                            <br><small class="text-muted">2 personas</small>
+                                        </td>
+                                        <td>15/01/2025</td>
+                                        <td>21:00</td>
+                                        <td>2</td>
+                                        <td>
+                                            <select class="form-select form-select-sm" onchange="cambiarEstadoReserva('RES003', this.value)">
+                                                <option value="PENDIENTE">Pendiente</option>
+                                                <option value="CONFIRMADA" selected>Confirmada</option>
+                                                <option value="CANCELADA">Cancelada</option>
+                                                <option value="COMPLETADA">Completada</option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <small>Cena romántica</small>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" onclick="editarReserva('RES003')" title="Editar">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-outline-success" onclick="confirmarReserva('RES003')" title="Confirmar">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                                <button class="btn btn-outline-info" onclick="enviarRecordatorio('RES003')" title="Recordatorio">
+                                                    <i class="fas fa-bell"></i>
+                                                </button>
+                                                <button class="btn btn-outline-danger" onclick="cancelarReserva('RES003')" title="Cancelar">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Tab Calendario -->
+                    <div class="tab-pane fade" id="calendario" role="tabpanel">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="calendar-container">
+                                    <div class="calendar-header d-flex justify-content-between align-items-center mb-3">
+                                        <button class="btn btn-outline-primary" onclick="cambiarMes(-1)">
+                                            <i class="fas fa-chevron-left"></i>
+                                        </button>
+                                        <h5 id="mesActual">Enero 2025</h5>
+                                        <button class="btn btn-outline-primary" onclick="cambiarMes(1)">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </button>
+                                    </div>
+                                    <div class="calendar-grid">
+                                        <div class="calendar-day-header">Dom</div>
+                                        <div class="calendar-day-header">Lun</div>
+                                        <div class="calendar-day-header">Mar</div>
+                                        <div class="calendar-day-header">Mié</div>
+                                        <div class="calendar-day-header">Jue</div>
+                                        <div class="calendar-day-header">Vie</div>
+                                        <div class="calendar-day-header">Sáb</div>
+                                        
+                                        <!-- Días del calendario (ejemplo) -->
+                                        <div class="calendar-day"></div>
+                                        <div class="calendar-day"></div>
+                                        <div class="calendar-day"></div>
+                                        <div class="calendar-day">1</div>
+                                        <div class="calendar-day">2</div>
+                                        <div class="calendar-day">3</div>
+                                        <div class="calendar-day">4</div>
+                                        <div class="calendar-day">5</div>
+                                        <div class="calendar-day">6</div>
+                                        <div class="calendar-day">7</div>
+                                        <div class="calendar-day">8</div>
+                                        <div class="calendar-day">9</div>
+                                        <div class="calendar-day">10</div>
+                                        <div class="calendar-day">11</div>
+                                        <div class="calendar-day">12</div>
+                                        <div class="calendar-day">13</div>
+                                        <div class="calendar-day">14</div>
+                                        <div class="calendar-day calendar-day-today">
+                                            15
+                                            <div class="calendar-reservas">
+                                                <small class="badge bg-warning">3 reservas</small>
+                                            </div>
+                                        </div>
+                                        <div class="calendar-day">16</div>
+                                        <div class="calendar-day">17</div>
+                                        <div class="calendar-day">18</div>
+                                        <div class="calendar-day">19</div>
+                                        <div class="calendar-day">20</div>
+                                        <div class="calendar-day">21</div>
+                                        <div class="calendar-day">22</div>
+                                        <div class="calendar-day">23</div>
+                                        <div class="calendar-day">24</div>
+                                        <div class="calendar-day">25</div>
+                                        <div class="calendar-day">26</div>
+                                        <div class="calendar-day">27</div>
+                                        <div class="calendar-day">28</div>
+                                        <div class="calendar-day">29</div>
+                                        <div class="calendar-day">30</div>
+                                        <div class="calendar-day">31</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Reservas del Día Seleccionado</h6>
+                                    </div>
+                                    <div class="card-body" id="reservasDiaSeleccionado">
+                                        <div class="text-center text-muted">
+                                            <i class="fas fa-calendar-day fa-3x mb-3"></i>
+                                            <p>Seleccione un día para ver las reservas</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tab Estado de Mesas -->
+                    <div class="tab-pane fade" id="mesas" role="tabpanel">
+                        <div class="row">
+                            <div class="col-12 mb-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6>Estado Actual de las Mesas</h6>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-success">
+                                            <i class="fas fa-circle text-success me-1"></i>Libre
+                                        </button>
+                                        <button class="btn btn-outline-warning">
+                                            <i class="fas fa-circle text-warning me-1"></i>Reservada
+                                        </button>
+                                        <button class="btn btn-outline-danger">
+                                            <i class="fas fa-circle text-danger me-1"></i>Ocupada
+                                        </button>
+                                        <button class="btn btn-outline-secondary">
+                                            <i class="fas fa-circle text-secondary me-1"></i>Mantenimiento
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <!-- Mesas de ejemplo -->
+                            <div class="col-md-3 mb-3">
+                                <div class="card mesa-card mesa-libre" onclick="gestionarMesa(1)">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-table fa-2x mb-2"></i>
+                                        <h6>Mesa 1</h6>
+                                        <small class="text-muted">4 personas</small>
+                                        <div class="mt-2">
+                                            <span class="badge bg-success">Libre</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <div class="card mesa-card mesa-reservada" onclick="gestionarMesa(2)">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-table fa-2x mb-2"></i>
+                                        <h6>Mesa 2</h6>
+                                        <small class="text-muted">2 personas</small>
+                                        <div class="mt-2">
+                                            <span class="badge bg-warning">Reservada</span>
+                                            <br><small>19:30 - Juan P.</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <div class="card mesa-card mesa-ocupada" onclick="gestionarMesa(3)">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-table fa-2x mb-2"></i>
+                                        <h6>Mesa 3</h6>
+                                        <small class="text-muted">6 personas</small>
+                                        <div class="mt-2">
+                                            <span class="badge bg-danger">Ocupada</span>
+                                            <br><small>Desde 18:00</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <div class="card mesa-card mesa-libre" onclick="gestionarMesa(4)">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-table fa-2x mb-2"></i>
+                                        <h6>Mesa 4</h6>
+                                        <small class="text-muted">4 personas</small>
+                                        <div class="mt-2">
+                                            <span class="badge bg-success">Libre</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Más mesas... -->
+                            <div class="col-md-3 mb-3">
+                                <div class="card mesa-card mesa-reservada" onclick="gestionarMesa(5)">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-table fa-2x mb-2"></i>
+                                        <h6>Mesa 5</h6>
+                                        <small class="text-muted">4 personas</small>
+                                        <div class="mt-2">
+                                            <span class="badge bg-warning">Reservada</span>
+                                            <br><small>20:00 - María G.</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <div class="card mesa-card mesa-mantenimiento" onclick="gestionarMesa(6)">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-table fa-2x mb-2"></i>
+                                        <h6>Mesa 6</h6>
+                                        <small class="text-muted">8 personas</small>
+                                        <div class="mt-2">
+                                            <span class="badge bg-secondary">Mantenimiento</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nueva/Editar Reserva -->
+<div class="modal fade" id="modalReserva" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-calendar-plus me-2"></i>
+                    <span id="tituloModalReserva">Nueva Reserva</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formReserva">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Cliente *</label>
+                                <select class="form-select" id="clienteReserva" required>
+                                    <option value="">Seleccionar cliente</option>
+                                    {% for cliente in clientes %}
+                                    <option value="{{ cliente.id }}">{{ cliente.nombre }} {{ cliente.apellido }}</option>
+                                    {% endfor %}
+                                    <option value="nuevo">+ Nuevo Cliente</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Mesa *</label>
+                                <select class="form-select" id="mesaReserva" required>
+                                    <option value="">Seleccionar mesa</option>
+                                    {% for mesa in mesas %}
+                                    <option value="{{ mesa.id }}">Mesa {{ mesa.numero_mesa }} ({{ mesa.capacidad }} personas)</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Fecha *</label>
+                                <input type="date" class="form-control" id="fechaReserva" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Hora *</label>
+                                <input type="time" class="form-control" id="horaReserva" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Número de Personas *</label>
+                                <input type="number" class="form-control" id="personasReserva" min="1" max="20" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Observaciones</label>
+                        <textarea class="form-control" id="observacionesReserva" rows="3" placeholder="Ocasión especial, preferencias, alergias..."></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Estado</label>
+                                <select class="form-select" id="estadoReserva">
+                                    <option value="PENDIENTE">Pendiente</option>
+                                    <option value="CONFIRMADA">Confirmada</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="form-check mt-4">
+                                    <input class="form-check-input" type="checkbox" id="enviarConfirmacion">
+                                    <label class="form-check-label" for="enviarConfirmacion">
+                                        Enviar confirmación por email/SMS
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Guardar Reserva
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Gestionar Mesa -->
+<div class="modal fade" id="modalGestionarMesa" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-table me-2"></i>Gestionar Mesa
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Mesa</label>
+                    <input type="text" class="form-control" id="mesaGestion" readonly>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Estado Actual</label>
+                    <input type="text" class="form-control" id="estadoActualMesa" readonly>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Cambiar Estado</label>
+                    <select class="form-select" id="nuevoEstadoMesa">
+                        <option value="LIBRE">Libre</option>
+                        <option value="OCUPADA">Ocupada</option>
+                        <option value="RESERVADA">Reservada</option>
+                        <option value="MANTENIMIENTO">Mantenimiento</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Observaciones</label>
+                    <textarea class="form-control" id="observacionesMesa" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="actualizarEstadoMesa()">
+                    <i class="fas fa-save me-2"></i>Actualizar Estado
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #17a2b8, #138496);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+    background-color: #dee2e6;
+    border: 1px solid #dee2e6;
+}
+
+.calendar-day-header {
+    background-color: #495057;
+    color: white;
+    padding: 10px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.calendar-day {
+    background-color: white;
+    padding: 10px;
+    min-height: 80px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    position: relative;
+}
+
+.calendar-day:hover {
+    background-color: #f8f9fa;
+}
+
+.calendar-day-today {
+    background-color: #e3f2fd;
+    font-weight: bold;
+}
+
+.calendar-reservas {
+    position: absolute;
+    bottom: 5px;
+    left: 5px;
+    right: 5px;
+}
+
+.mesa-card {
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.mesa-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.mesa-libre {
+    border-left: 4px solid #28a745;
+}
+
+.mesa-reservada {
+    border-left: 4px solid #ffc107;
+}
+
+.mesa-ocupada {
+    border-left: 4px solid #dc3545;
+}
+
+.mesa-mantenimiento {
+    border-left: 4px solid #6c757d;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Variables globales
+let reservaEditando = null;
+let mesaActual = null;
+
+// Inicialización
+document.addEventListener('DOMContentLoaded', function() {
+    // Filtros
+    document.getElementById('filtroFecha').addEventListener('change', filtrarReservas);
+    document.getElementById('filtroEstado').addEventListener('change', filtrarReservas);
+    document.getElementById('filtroMesa').addEventListener('change', filtrarReservas);
+    document.getElementById('buscarReserva').addEventListener('input', filtrarReservas);
+    
+    // Formularios
+    document.getElementById('formReserva').addEventListener('submit', guardarReserva);
+    
+    // Establecer fecha mínima para reservas
+    const fechaReserva = document.getElementById('fechaReserva');
+    const hoy = new Date().toISOString().split('T')[0];
+    fechaReserva.min = hoy;
+    fechaReserva.value = hoy;
+    
+    // Validar capacidad de mesa
+    document.getElementById('mesaReserva').addEventListener('change', validarCapacidadMesa);
+    document.getElementById('personasReserva').addEventListener('input', validarCapacidadMesa);
+});
+
+// Filtrar reservas
+function filtrarReservas() {
+    const fecha = document.getElementById('filtroFecha').value;
+    const estado = document.getElementById('filtroEstado').value;
+    const mesa = document.getElementById('filtroMesa').value;
+    const busqueda = document.getElementById('buscarReserva').value.toLowerCase();
+    
+    const filas = document.querySelectorAll('#tablaReservas tbody tr');
+    
+    filas.forEach(fila => {
+        const fechaFila = fila.dataset.fecha;
+        const estadoFila = fila.dataset.estado;
+        const mesaFila = fila.dataset.mesa;
+        const cliente = fila.cells[1].textContent.toLowerCase();
+        
+        let mostrar = true;
+        
+        if (fecha && fechaFila !== fecha) {
+            mostrar = false;
+        }
+        
+        if (estado && estadoFila !== estado) {
+            mostrar = false;
+        }
+        
+        if (mesa && mesaFila !== mesa) {
+            mostrar = false;
+        }
+        
+        if (busqueda && !cliente.includes(busqueda)) {
+            mostrar = false;
+        }
+        
+        fila.style.display = mostrar ? '' : 'none';
+    });
+}
+
+// Validar capacidad de mesa
+function validarCapacidadMesa() {
+    const mesaSelect = document.getElementById('mesaReserva');
+    const personasInput = document.getElementById('personasReserva');
+    
+    if (mesaSelect.value && personasInput.value) {
+        const mesaTexto = mesaSelect.options[mesaSelect.selectedIndex].text;
+        const capacidad = parseInt(mesaTexto.match(/\\((\\d+) personas\\)/)?.[1] || 0);
+        const personas = parseInt(personasInput.value);
+        
+        if (personas > capacidad) {
+            personasInput.setCustomValidity(`La mesa seleccionada tiene capacidad para ${capacidad} personas`);
+        } else {
+            personasInput.setCustomValidity('');
+        }
+    }
+}
+
+// Cambiar estado de reserva
+function cambiarEstadoReserva(reservaId, nuevoEstado) {
+    showToast(`Estado de reserva ${reservaId} cambiado a ${nuevoEstado}`, 'success');
+}
+
+// Editar reserva
+function editarReserva(id) {
+    reservaEditando = id;
+    document.getElementById('tituloModalReserva').textContent = 'Editar Reserva';
+    
+    // En implementación real, cargar datos de la reserva
+    showToast('Función de edición disponible en versión completa', 'info');
+    
+    const modal = new bootstrap.Modal(document.getElementById('modalReserva'));
+    modal.show();
+}
+
+// Guardar reserva
+function guardarReserva(e) {
+    e.preventDefault();
+    
+    const formData = {
+        cliente: document.getElementById('clienteReserva').value,
+        mesa: document.getElementById('mesaReserva').value,
+        fecha: document.getElementById('fechaReserva').value,
+        hora: document.getElementById('horaReserva').value,
+        personas: document.getElementById('personasReserva').value,
+        observaciones: document.getElementById('observacionesReserva').value,
+        estado: document.getElementById('estadoReserva').value,
+        enviarConfirmacion: document.getElementById('enviarConfirmacion').checked
+    };
+    
+    if (!formData.cliente || !formData.mesa || !formData.fecha || !formData.hora || !formData.personas) {
+        showToast('Complete todos los campos obligatorios', 'error');
+        return;
+    }
+    
+    showToast(reservaEditando ? 'Reserva actualizada correctamente' : 'Reserva creada correctamente', 'success');
+    
+    if (formData.enviarConfirmacion) {
+        showToast('Confirmación enviada al cliente', 'info');
+    }
+    
+    bootstrap.Modal.getInstance(document.getElementById('modalReserva')).hide();
+    document.getElementById('formReserva').reset();
+    reservaEditando = null;
+    
+    setTimeout(() => location.reload(), 1500);
+}
+
+// Confirmar reserva
+function confirmarReserva(id) {
+    if (confirm('¿Confirmar esta reserva?')) {
+        showToast(`Reserva ${id} confirmada correctamente`, 'success');
+        setTimeout(() => location.reload(), 1500);
+    }
+}
+
+// Cancelar reserva
+function cancelarReserva(id) {
+    if (confirm('¿Está seguro de cancelar esta reserva?')) {
+        showToast(`Reserva ${id} cancelada`, 'warning');
+        setTimeout(() => location.reload(), 1500);
+    }
+}
+
+// Enviar recordatorio
+function enviarRecordatorio(id) {
+    showToast(`Recordatorio enviado para reserva ${id}`, 'info');
+}
+
+// Ver calendario
+function verCalendario() {
+    // Activar tab de calendario
+    const calendarioTab = document.getElementById('calendario-tab');
+    calendarioTab.click();
+}
+
+// Cambiar mes en calendario
+function cambiarMes(direccion) {
+    // En implementación real, cambiar el mes del calendario
+    showToast('Navegación de calendario disponible en versión completa', 'info');
+}
+
+// Gestionar mesa
+function gestionarMesa(numeroMesa) {
+    mesaActual = numeroMesa;
+    document.getElementById('mesaGestion').value = `Mesa ${numeroMesa}`;
+    
+    // Simular estado actual
+    const estados = ['Libre', 'Ocupada', 'Reservada', 'Mantenimiento'];
+    const estadoActual = estados[Math.floor(Math.random() * estados.length)];
+    document.getElementById('estadoActualMesa').value = estadoActual;
+    
+    const modal = new bootstrap.Modal(document.getElementById('modalGestionarMesa'));
+    modal.show();
+}
+
+// Actualizar estado de mesa
+function actualizarEstadoMesa() {
+    const nuevoEstado = document.getElementById('nuevoEstadoMesa').value;
+    const observaciones = document.getElementById('observacionesMesa').value;
+    
+    showToast(`Estado de Mesa ${mesaActual} actualizado a ${nuevoEstado}`, 'success');
+    
+    bootstrap.Modal.getInstance(document.getElementById('modalGestionarMesa')).hide();
+    document.getElementById('observacionesMesa').value = '';
+    
+    setTimeout(() => location.reload(), 1500);
+}
+
+// Gestionar mesas (función del botón)
+function gestionarMesas() {
+    // Activar tab de mesas
+    const mesasTab = document.getElementById('mesas-tab');
+    mesasTab.click();
+}
+
+// Función para mostrar notificaciones
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
+    toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    toast.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 3000);
+}
+</script>
+{% endblock %}

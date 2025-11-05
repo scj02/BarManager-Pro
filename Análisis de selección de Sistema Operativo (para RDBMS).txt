@@ -1,0 +1,29 @@
+
+* Análisis de selección de Sistema Operativo
+
+- Objetivo: Se debe poder explicar el porqué de la elección del SO para la VM donde va a correr el RDBMS relacional
+
+Para nuestro proyecto del BarManager Pro se para esto lo primero que se necesita es un sistema operativo compatible con PostgreSQL, que cumpla con los requerimientos de esta base de datos como soporte a largo plazo (LTS), buena seguridad, bajo consumo de recursos y que sea fácil de administrar. Además, de tener buena documentación y herramientas para facilitar la instalación y mantenimiento de una máquina virtual no tan robusta.
+
+Se tuvieron en cuenta tres opciones principales: Ubuntu Server LTS (22.04 / 24.04), Debian Stable (12 “Bookworm”) y Rocky Linux / AlmaLinux / CentOS Stream. Todas estas son distribuciones Linux confiables, pero presentan diferencias importantes.
+Los criterios para la evaluación fueron: soporte oficial y LTS, actualizaciones y parches de seguridad, compatibilidad con PostgreSQL, comunidad y documentación, facilidad de uso (gestores de paquetes como apt o yum), y requerimientos mínimos de hardware.
+
+Dentro de lo que se comparó, Ubuntu Server LTS destacó por su documentación, facilidad de uso, amplia compatibilidad con PostgreSQL y actualizaciones fáciles de implementar, lo que lo hace ideal tanto para desarrollo como para producción. Debian Stable es una opción muy robusta y confiable, enfocada en la estabilidad, recomendada para quienes priorizan entornos sin cambios frecuentes (Pero nosotros si debemos priorizar cambios). Y ya Rocky Linux y AlmaLinux son buenas alternativas compatibles con RHEL, aunque pueden ser un poco más complejas de administrar.
+
+Finalmente, optamos por usar Ubuntu Server LTS como el sistema operativo más adecuado, ya que ofrece el mejor equilibrio entre estabilidad, facilidad de uso, soporte y compatibilidad con el motor de base de datos PostgreSQL.
+
+- Puntos para considerar:
+* Crear usuario sin privilegios y habilitar SSH con keypair.
+* Activar UFW y permitir solo puertos necesarios (SSH, puerto PostgreSQL solo en red interna).
+* Actualizaciones automáticas para parches críticos.
+* Configurar backups automáticos (pg_dump, WAL archive o snapshots).
+* Separar almacenamiento de datos (disco distinto para /var/lib/postgresql).
+
+
+Universidad El Bosque 
+Docente: Christian Felipe Duarte Arevalo
+Asignatura: Bases de datos II 
+Estudiante: Julián Antonio Mejia Eslava
+                     Cristian Santiago Cruz Jiménez
+                     Sergio Andrés Valderrama Velez
+

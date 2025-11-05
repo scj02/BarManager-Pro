@@ -1,0 +1,772 @@
+-- ==================================================================================
+-- Migración PL/SQL (Oracle) -> PL/pgSQL (PostgreSQL)
+-- Archivo: migracion_oracle_to_postgres.sql
+-- Recomendación: Ejecutar en PostgreSQL 12+ en un esquema adecuado (por ejemplo public)
+-- NOTAS:
+--  - Este script asume que las tablas (productos, pedidos, detalles_pedido, pagos, clientes,
+--    empleados, puestos, categorias, movimientos_inventario, etc.) ya existen con nombres y
+--    columnas similares a los usados en las consultas. Ajusta tipos/columnas según tu esquema.
+--  - Para UUID usamos la extensión pgcrypto: gen_random_uuid()
+--  - Para jobs automáticos incluí ejemplos con pg_cron (requiere instalar la extensión)
+-- ==================================================================================
+
+/* ---------------------------
+   0) Extensiones y configuración
+   --------------------------- */
+CREATE EXTENSION IF NOT EXISTS pgcrypto;  -- para gen_random_uuid()
+-- CREATE EXTENSION IF NOT EXISTS pg_cron; -- activar si deseas usar pg_cron (requerido y configurado por DBA)
+
+SET search_path = public;
+
+-- ---------------------------
+-- 1) Secuencias
+-- ---------------------------
+CREATE SEQUENCE IF NOT EXISTS seq_categoria START 1;
+CREATE SEQUENCE IF NOT EXISTS seq_producto START 1;
+CREATE SEQUENCE IF NOT EXISTS seq_empleado START 1;
+CREATE SEQUENCE IF NOT EXISTS seq_cliente START 1;
+CREATE SEQUENCE IF NOT EXISTS seq_pedido START 1;
+CREATE SEQUENCE IF NOT EXISTS seq_pago START 1;
+
+-- ---------------------------
+-- 2) Funciones utilitarias
+-- ---------------------------
+/*
+ generate_uuid() -> devuelve uuid en formato texto (similar a SYS_GUID en Oracle)
+*/
+CREATE OR REPLACE FUNCTION generate_uuid()
+RETURNS TEXT
+LANGUAGE SQL
+AS $$
+    SELECT lower(gen_random_uuid()::text);
+$$;
+
+-- ---------------------------
+-- 3) Reportes de Ventas
+-- ---------------------------
+
+/*
+ Reporte de ventas diarias (últimos 30 días por defecto)
+*/
+CREATE OR REPLACE FUNCTION fn_reporte_ventas_diarias(p_dias INTEGER DEFAULT 30)
+RETURNS TABLE(
+    fecha date,
+    total_pedidos bigint,
+    clientes_unicos bigint,
+    subtotal_dia numeric,
+    impuestos_dia numeric,
+    descuentos_dia numeric,
+    total_ventas_dia numeric,
+    ticket_promedio numeric,
+    ticket_maximo numeric,
+    ticket_minimo numeric
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        date_trunc('day', p.fecha_pedido)::date AS fecha,
+        COUNT(DISTINCT p.id_pedido)::bigint AS total_pedidos,
+        COUNT(DISTINCT p.id_cliente)::bigint AS clientes_unicos,
+        COALESCE(SUM(p.subtotal),0) AS subtotal_dia,
+        COALESCE(SUM(p.impuestos),0) AS impuestos_dia,
+        COALESCE(SUM(p.descuentos),0) AS descuentos_dia,
+        COALESCE(SUM(p.total),0) AS total_ventas_dia,
+        ROUND(COALESCE(AVG(p.total),0)::numeric,2) AS ticket_promedio,
+        COALESCE(MAX(p.total),0) AS ticket_maximo,
+        COALESCE(MIN(p.total),0) AS ticket_minimo
+    FROM pedidos p
+    WHERE p.estado = 'PAGADO'
+      AND p.fecha_pedido >= (CURRENT_DATE - (p_dias || ' days')::interval)
+    GROUP BY date_trunc('day', p.fecha_pedido)
+    ORDER BY fecha DESC;
+END;
+$$;
+
+-- Procedimiento / función: ventas por empleado (retorna tabla)
+CREATE OR REPLACE FUNCTION fn_ventas_por_empleado(
+    p_fecha_inicio date DEFAULT (CURRENT_DATE - INTERVAL '30 days')::date,
+    p_fecha_fin date DEFAULT CURRENT_DATE
+)
+RETURNS TABLE(
+    codigo_empleado text,
+    empleado_nombre text,
+    nombre_puesto text,
+    total_pedidos bigint,
+    total_ventas numeric,
+    ticket_promedio numeric,
+    comision_ganada numeric,
+    ranking_ventas bigint
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        e.codigo_empleado,
+        (COALESCE(e.nombre,'') || ' ' || COALESCE(e.apellido,'')) AS empleado_nombre,
+        pu.nombre_puesto,
+        COUNT(p.id_pedido)::bigint AS total_pedidos,
+        COALESCE(SUM(p.total),0)::numeric AS total_ventas,
+        ROUND(COALESCE(AVG(p.total),0)::numeric,2) AS ticket_promedio,
+        ROUND(COALESCE(SUM(p.total),0) * COALESCE(pu.comision_porcentaje,0) / 100.0, 2) AS comision_ganada,
+        RANK() OVER (ORDER BY COALESCE(SUM(p.total),0) DESC)::bigint AS ranking_ventas
+    FROM empleados e
+    LEFT JOIN puestos pu ON e.id_puesto = pu.id_puesto
+    LEFT JOIN pedidos p ON e.id_empleado = p.id_empleado
+        AND p.estado = 'PAGADO'
+        AND date_trunc('day', p.fecha_pedido)::date BETWEEN p_fecha_inicio AND p_fecha_fin
+    WHERE COALESCE(e.activo, TRUE) = TRUE
+    GROUP BY e.id_empleado, e.codigo_empleado, e.nombre, e.apellido, pu.nombre_puesto, pu.comision_porcentaje
+    ORDER BY total_ventas DESC;
+END;
+$$;
+
+
+-- Ventas por producto (últimos p_dias) -> retorna tabla
+CREATE OR REPLACE FUNCTION fn_ventas_producto(p_dias INTEGER DEFAULT 30)
+RETURNS TABLE(
+    producto_nombre text,
+    nombre_categoria text,
+    cantidad_vendida numeric,
+    total_ventas_producto numeric,
+    precio_promedio numeric,
+    precio_compra numeric,
+    precio_actual numeric,
+    margen_porcentaje numeric,
+    ganancia_bruta numeric,
+    pedidos_incluido bigint
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        pr.nombre AS producto_nombre,
+        c.nombre_categoria,
+        COALESCE(SUM(dp.cantidad),0) AS cantidad_vendida,
+        COALESCE(SUM(dp.subtotal_item),0) AS total_ventas_producto,
+        ROUND(COALESCE(AVG(dp.precio_unitario),0)::numeric,2) AS precio_promedio,
+        pr.precio_compra,
+        pr.precio_venta AS precio_actual,
+        ROUND(((pr.precio_venta - pr.precio_compra) / NULLIF(pr.precio_compra,0) * 100)::numeric,2) AS margen_porcentaje,
+        COALESCE(SUM(dp.subtotal_item),0) - (COALESCE(SUM(dp.cantidad),0) * COALESCE(pr.precio_compra,0)) AS ganancia_bruta,
+        COUNT(DISTINCT p.id_pedido)::bigint AS pedidos_incluido
+    FROM productos pr
+    LEFT JOIN categorias c ON pr.id_categoria = c.id_categoria
+    LEFT JOIN detalles_pedido dp ON pr.id_producto = dp.id_producto
+    LEFT JOIN pedidos p ON dp.id_pedido = p.id_pedido
+    WHERE p.estado = 'PAGADO'
+      AND p.fecha_pedido >= (CURRENT_DATE - (p_dias || ' days')::interval)
+    GROUP BY pr.id_producto, pr.nombre, c.nombre_categoria, pr.precio_compra, pr.precio_venta
+    ORDER BY cantidad_vendida DESC;
+END;
+$$;
+
+
+-- ---------------------------
+-- 4) Reportes de Inventario
+-- ---------------------------
+
+-- Stock actual con alertas
+CREATE OR REPLACE FUNCTION fn_reporte_stock_actual(p_solo_alertas BOOLEAN DEFAULT FALSE)
+RETURNS TABLE(
+    codigo_barras text,
+    producto_nombre text,
+    nombre_categoria text,
+    stock_actual numeric,
+    stock_minimo numeric,
+    unidad_medida text,
+    precio_compra numeric,
+    precio_venta numeric,
+    valor_inventario_compra numeric,
+    valor_inventario_venta numeric,
+    estado_stock text,
+    dias_desde_creacion integer
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        pr.codigo_barras,
+        pr.nombre AS producto_nombre,
+        c.nombre_categoria,
+        pr.stock_actual,
+        pr.stock_minimo,
+        pr.unidad_medida,
+        pr.precio_compra,
+        pr.precio_venta,
+        pr.stock_actual * pr.precio_compra AS valor_inventario_compra,
+        pr.stock_actual * pr.precio_venta AS valor_inventario_venta,
+        CASE
+            WHEN pr.stock_actual = 0 THEN 'SIN_STOCK'
+            WHEN pr.stock_actual <= pr.stock_minimo THEN 'STOCK_BAJO'
+            WHEN pr.stock_actual <= (pr.stock_minimo * 1.5) THEN 'STOCK_MEDIO'
+            ELSE 'STOCK_OK'
+        END AS estado_stock,
+        (CURRENT_DATE - date_trunc('day', pr.fecha_creacion)::date)::integer AS dias_desde_creacion
+    FROM productos pr
+    LEFT JOIN categorias c ON pr.id_categoria = c.id_categoria
+    WHERE COALESCE(pr.activo, TRUE) = TRUE
+      AND (p_solo_alertas = FALSE OR pr.stock_actual <= pr.stock_minimo)
+    ORDER BY
+        CASE
+            WHEN pr.stock_actual = 0 THEN 1
+            WHEN pr.stock_actual <= pr.stock_minimo THEN 2
+            ELSE 3
+        END,
+        pr.nombre;
+END;
+$$;
+
+
+-- Rotación de inventario
+CREATE OR REPLACE FUNCTION fn_rotacion_inventario(p_dias INTEGER DEFAULT 30)
+RETURNS TABLE(
+    producto_nombre text,
+    nombre_categoria text,
+    stock_actual numeric,
+    total_vendido_periodo numeric,
+    rotacion_periodo numeric,
+    dias_inventario_restante numeric,
+    clasificacion_rotacion text
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    WITH ventas_producto AS (
+        SELECT
+            pr.id_producto,
+            pr.nombre,
+            COALESCE(SUM(dp.cantidad),0) AS total_vendido_periodo,
+            pr.stock_actual
+        FROM productos pr
+        LEFT JOIN detalles_pedido dp ON pr.id_producto = dp.id_producto
+        LEFT JOIN pedidos p ON dp.id_pedido = p.id_pedido
+            AND (p.estado = 'PAGADO' OR p.estado IS NULL)
+            AND (p.fecha_pedido >= (CURRENT_DATE - (p_dias || ' days')::interval) OR p.fecha_pedido IS NULL)
+        GROUP BY pr.id_producto, pr.nombre, pr.stock_actual
+    )
+    SELECT
+        vp.nombre AS producto_nombre,
+        c.nombre_categoria,
+        pr.stock_actual,
+        vp.total_vendido_periodo,
+        CASE WHEN pr.stock_actual > 0 THEN ROUND((vp.total_vendido_periodo::numeric / pr.stock_actual)::numeric,2) ELSE 0 END AS rotacion_periodo,
+        CASE WHEN vp.total_vendido_periodo > 0 THEN ROUND(pr.stock_actual / (vp.total_vendido_periodo::numeric / p_dias)::numeric,1) ELSE 999 END AS dias_inventario_restante,
+        CASE
+            WHEN vp.total_vendido_periodo = 0 THEN 'SIN_MOVIMIENTO'
+            WHEN (pr.stock_actual / NULLIF(vp.total_vendido_periodo::numeric / p_dias,0)) < 7 THEN 'ROTACION_ALTA'
+            WHEN (pr.stock_actual / NULLIF(vp.total_vendido_periodo::numeric / p_dias,0)) < 15 THEN 'ROTACION_MEDIA'
+            ELSE 'ROTACION_BAJA'
+        END AS clasificacion_rotacion
+    FROM ventas_producto vp
+    INNER JOIN productos pr ON vp.id_producto = pr.id_producto
+    LEFT JOIN categorias c ON pr.id_categoria = c.id_categoria
+    WHERE COALESCE(pr.activo, TRUE) = TRUE
+    ORDER BY rotacion_periodo DESC;
+END;
+$$;
+
+
+-- ---------------------------
+-- 5) Reportes Financieros (antes: package)
+-- ---------------------------
+
+-- Ingresos por método de pago
+CREATE OR REPLACE FUNCTION fn_ingresos_metodo_pago(p_dias INTEGER DEFAULT 30)
+RETURNS TABLE(
+    metodo_pago text,
+    total_transacciones bigint,
+    total_ingresos numeric,
+    monto_promedio numeric,
+    porcentaje_total numeric,
+    monto_minimo numeric,
+    monto_maximo numeric
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    WITH total_global AS (
+        SELECT COALESCE(SUM(monto),0) AS suma_total
+        FROM pagos
+        WHERE estado = 'APROBADO'
+          AND fecha_pago >= (CURRENT_DATE - (p_dias || ' days')::interval)
+    )
+    SELECT
+        pag.metodo_pago,
+        COUNT(pag.id_pago)::bigint AS total_transacciones,
+        COALESCE(SUM(pag.monto),0) AS total_ingresos,
+        ROUND(COALESCE(AVG(pag.monto),0)::numeric,2) AS monto_promedio,
+        CASE WHEN tg.suma_total = 0 THEN 0 ELSE ROUND((COALESCE(SUM(pag.monto),0) / tg.suma_total * 100)::numeric,2) END AS porcentaje_total,
+        COALESCE(MIN(pag.monto),0) AS monto_minimo,
+        COALESCE(MAX(pag.monto),0) AS monto_maximo
+    FROM pagos pag, total_global tg
+    WHERE pag.estado = 'APROBADO'
+      AND pag.fecha_pago >= (CURRENT_DATE - (p_dias || ' days')::interval)
+    GROUP BY pag.metodo_pago, tg.suma_total
+    ORDER BY total_ingresos DESC;
+END;
+$$;
+
+
+-- Rentabilidad por categoría (retorna tabla similar a sp)
+CREATE OR REPLACE FUNCTION fn_rentabilidad_categoria(p_dias INTEGER DEFAULT 30)
+RETURNS TABLE(
+    nombre_categoria text,
+    productos_categoria bigint,
+    total_unidades_vendidas numeric,
+    ingresos_categoria numeric,
+    costo_productos_vendidos numeric,
+    ganancia_bruta numeric,
+    margen_ganancia_porcentaje numeric,
+    ingreso_promedio_por_pedido numeric
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        c.nombre_categoria,
+        COUNT(DISTINCT pr.id_producto)::bigint AS productos_categoria,
+        COALESCE(SUM(dp.cantidad),0)::numeric AS total_unidades_vendidas,
+        COALESCE(SUM(dp.subtotal_item),0)::numeric AS ingresos_categoria,
+        COALESCE(SUM(dp.cantidad * pr.precio_compra),0)::numeric AS costo_productos_vendidos,
+        COALESCE(SUM(dp.subtotal_item),0) - COALESCE(SUM(dp.cantidad * pr.precio_compra),0) AS ganancia_bruta,
+        ROUND(
+            CASE WHEN COALESCE(SUM(dp.subtotal_item),0) = 0 THEN 0
+                 ELSE ((COALESCE(SUM(dp.subtotal_item),0) - COALESCE(SUM(dp.cantidad * pr.precio_compra),0)) / NULLIF(COALESCE(SUM(dp.subtotal_item),0),0) * 100)
+            END::numeric,2) AS margen_ganancia_porcentaje,
+        ROUND(COALESCE(SUM(dp.subtotal_item),0) / NULLIF(COUNT(DISTINCT p.id_pedido),0)::numeric,2) AS ingreso_promedio_por_pedido
+    FROM categorias c
+    INNER JOIN productos pr ON c.id_categoria = pr.id_categoria
+    INNER JOIN detalles_pedido dp ON pr.id_producto = dp.id_producto
+    INNER JOIN pedidos p ON dp.id_pedido = p.id_pedido
+    WHERE p.estado = 'PAGADO'
+      AND p.fecha_pedido >= (CURRENT_DATE - (p_dias || ' days')::interval)
+      AND COALESCE(c.activa, TRUE) = TRUE
+    GROUP BY c.id_categoria, c.nombre_categoria
+    ORDER BY ganancia_bruta DESC;
+END;
+$$;
+
+
+-- Flujo de caja diario
+CREATE OR REPLACE FUNCTION fn_flujo_caja_diario(p_dias INTEGER DEFAULT 30)
+RETURNS TABLE(
+    fecha date,
+    ingresos numeric,
+    egresos_compras numeric,
+    flujo_neto_dia numeric,
+    flujo_acumulado numeric
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    WITH ingresos_diarios AS (
+        SELECT date_trunc('day', pag.fecha_pago)::date AS fecha, SUM(pag.monto) AS ingresos_dia
+        FROM pagos pag
+        WHERE pag.estado = 'APROBADO'
+          AND pag.fecha_pago >= (CURRENT_DATE - (p_dias || ' days')::interval)
+        GROUP BY date_trunc('day', pag.fecha_pago)
+    ),
+    compras_diarias AS (
+        SELECT date_trunc('day', mi.fecha_movimiento)::date AS fecha, SUM(mi.cantidad * pr.precio_compra) AS egresos_compras
+        FROM movimientos_inventario mi
+        INNER JOIN productos pr ON mi.id_producto = pr.id_producto
+        WHERE mi.tipo_movimiento = 'ENTRADA'
+          AND mi.fecha_movimiento >= (CURRENT_DATE - (p_dias || ' days')::interval)
+        GROUP BY date_trunc('day', mi.fecha_movimiento)
+    ),
+    unioned AS (
+        SELECT COALESCE(i.fecha, c.fecha) AS fecha,
+               COALESCE(i.ingresos_dia,0) AS ingresos,
+               COALESCE(c.egresos_compras,0) AS egresos
+        FROM ingresos_diarios i
+        FULL OUTER JOIN compras_diarias c ON i.fecha = c.fecha
+    )
+    SELECT
+        u.fecha,
+        u.ingresos,
+        u.egresos AS egresos_compras,
+        (u.ingresos - u.egresos) AS flujo_neto_dia,
+        SUM(u.ingresos - u.egresos) OVER (ORDER BY u.fecha) AS flujo_acumulado
+    FROM unioned u
+    ORDER BY fecha DESC;
+END;
+$$;
+
+
+-- ---------------------------
+-- 6) Procedimientos de negocio
+-- ---------------------------
+
+/*
+ Procesar venta completa:
+  - Parámetros: p_id_pedido text, p_metodo_pago text
+  - Devuelve: puntos_ganados integer, resultado text
+  - Nota: requiere que las tablas tengan campos como en el script de Oracle. Ajustar nombres si difieren.
+*/
+CREATE OR REPLACE FUNCTION sp_procesar_venta_completa(
+    p_id_pedido TEXT,
+    p_metodo_pago TEXT
+)
+RETURNS TABLE(puntos_ganados integer, resultado text)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_total numeric := 0;
+    v_id_cliente text := NULL;
+    v_puntos integer := 0;
+    v_count_productos integer := 0;
+    v_estado text;
+BEGIN
+    puntos_ganados := 0;
+    resultado := 'ERROR';
+
+    -- Verificar que el pedido existe
+    SELECT total, id_cliente, estado INTO v_total, v_id_cliente, v_estado
+    FROM pedidos
+    WHERE id_pedido = p_id_pedido;
+
+    IF NOT FOUND THEN
+        resultado := 'ERROR: Pedido no existe';
+        RETURN;
+    END IF;
+
+    IF v_estado = 'PAGADO' THEN
+        resultado := 'ERROR: Pedido ya está pagado';
+        RETURN;
+    END IF;
+
+    -- Verificar stock suficiente
+    SELECT COUNT(*) INTO v_count_productos
+    FROM detalles_pedido dp
+    JOIN productos pr ON dp.id_producto = pr.id_producto
+    WHERE dp.id_pedido = p_id_pedido
+      AND pr.stock_actual < dp.cantidad;
+
+    IF v_count_productos > 0 THEN
+        resultado := 'ERROR: Stock insuficiente';
+        RETURN;
+    END IF;
+
+    -- Iniciar transacción lógica (Postgres ya está en transacción)
+    BEGIN
+        -- Reducir stock
+        UPDATE productos pr
+        SET stock_actual = pr.stock_actual - dp.cantidad
+        FROM detalles_pedido dp
+        WHERE dp.id_producto = pr.id_producto
+          AND dp.id_pedido = p_id_pedido;
+
+        -- Registrar pago
+        INSERT INTO pagos (id_pago, id_pedido, monto, metodo_pago, fecha_pago, estado)
+        VALUES (generate_uuid(), p_id_pedido, v_total, p_metodo_pago, NOW(), 'APROBADO');
+
+        -- Actualizar pedido
+        UPDATE pedidos SET estado = 'PAGADO' WHERE id_pedido = p_id_pedido;
+
+        -- Calcular puntos de fidelidad
+        IF v_id_cliente IS NOT NULL THEN
+            v_puntos := FLOOR(v_total / 10.0);
+            IF v_total > 500 THEN
+                v_puntos := CEIL(v_puntos * 1.5);
+            END IF;
+
+            UPDATE clientes SET puntos_fidelidad = COALESCE(puntos_fidelidad,0) + v_puntos
+            WHERE id_cliente = v_id_cliente;
+        END IF;
+
+        -- Registrar movimientos de inventario (INSERT por cada detalle)
+        INSERT INTO movimientos_inventario (id_movimiento, id_producto, id_empleado, tipo_movimiento, cantidad, fecha_movimiento, motivo, documento_referencia)
+        SELECT generate_uuid(), dp.id_producto, p.id_empleado, 'SALIDA', dp.cantidad, NOW(), 'Venta', 'PED-' || COALESCE(p.numero_pedido::text,'')
+        FROM detalles_pedido dp
+        JOIN pedidos p ON dp.id_pedido = p.id_pedido
+        WHERE dp.id_pedido = p_id_pedido;
+
+        puntos_ganados := v_puntos;
+        resultado := 'EXITO';
+        RETURN;
+    EXCEPTION WHEN OTHERS THEN
+        -- En caso de error, revertir (se espera que el caller maneje la transacción si hace COMMIT fuera)
+        RAISE;
+    END;
+END;
+$$;
+
+
+-- Función para calcular descuento por fidelidad
+CREATE OR REPLACE FUNCTION fn_calcular_descuento_fidelidad(
+    p_id_cliente TEXT,
+    p_monto_compra NUMERIC
+)
+RETURNS numeric
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_puntos_cliente integer := 0;
+    v_descuento numeric := 0;
+    v_nivel_cliente text;
+BEGIN
+    SELECT COALESCE(puntos_fidelidad,0) INTO v_puntos_cliente
+    FROM clientes
+    WHERE id_cliente = p_id_cliente
+      AND COALESCE(activo, TRUE) = TRUE;
+
+    v_nivel_cliente := CASE
+        WHEN v_puntos_cliente >= 1000 THEN 'PLATINO'
+        WHEN v_puntos_cliente >= 500 THEN 'ORO'
+        WHEN v_puntos_cliente >= 200 THEN 'PLATA'
+        WHEN v_puntos_cliente >= 50 THEN 'BRONCE'
+        ELSE 'NUEVO'
+    END;
+
+    v_descuento := CASE v_nivel_cliente
+        WHEN 'PLATINO' THEN p_monto_compra * 0.15
+        WHEN 'ORO' THEN p_monto_compra * 0.10
+        WHEN 'PLATA' THEN p_monto_compra * 0.05
+        WHEN 'BRONCE' THEN p_monto_compra * 0.02
+        ELSE 0
+    END;
+
+    IF v_descuento > 500 THEN
+        v_descuento := 500;
+    END IF;
+
+    RETURN ROUND(v_descuento::numeric,2);
+EXCEPTION WHEN NO_DATA_FOUND THEN
+    RETURN 0;
+WHEN OTHERS THEN
+    RETURN 0;
+END;
+$$;
+
+
+-- ---------------------------
+-- 7) Triggers
+-- ---------------------------
+
+/*
+ Trigger: actualizar stock en movimientos_inventario
+ AFTER INSERT ON movimientos_inventario FOR EACH ROW
+*/
+CREATE OR REPLACE FUNCTION trg_actualizar_stock_movimiento_fn()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_stock_actual numeric;
+    v_nuevo_stock numeric;
+BEGIN
+    SELECT stock_actual INTO v_stock_actual FROM productos WHERE id_producto = NEW.id_producto FOR UPDATE;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Producto no encontrado: %', NEW.id_producto;
+    END IF;
+
+    IF NEW.tipo_movimiento IN ('ENTRADA','AJUSTE') THEN
+        v_nuevo_stock := v_stock_actual + NEW.cantidad;
+    ELSIF NEW.tipo_movimiento IN ('SALIDA','MERMA') THEN
+        v_nuevo_stock := v_stock_actual - NEW.cantidad;
+    ELSE
+        v_nuevo_stock := v_stock_actual;
+    END IF;
+
+    IF v_nuevo_stock < 0 THEN
+        RAISE EXCEPTION 'El movimiento resultaría en stock negativo. Stock actual: %, Cantidad del movimiento: %', v_stock_actual, NEW.cantidad;
+    END IF;
+
+    UPDATE productos SET stock_actual = v_nuevo_stock WHERE id_producto = NEW.id_producto;
+
+    -- Opción: usar RAISE NOTICE para logging
+    RAISE NOTICE 'Stock actualizado para producto %: % -> %', NEW.id_producto, v_stock_actual, v_nuevo_stock;
+
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_actualizar_stock_movimiento ON movimientos_inventario;
+CREATE TRIGGER trg_actualizar_stock_movimiento
+AFTER INSERT ON movimientos_inventario
+FOR EACH ROW
+EXECUTE FUNCTION trg_actualizar_stock_movimiento_fn();
+
+
+/*
+ Trigger: calcular subtotal en detalles_pedido (BEFORE INSERT OR UPDATE)
+*/
+CREATE OR REPLACE FUNCTION trg_calcular_subtotal_detalle_fn()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF NEW.cantidad <= 0 THEN
+        RAISE EXCEPTION 'La cantidad debe ser mayor a cero';
+    END IF;
+    IF NEW.precio_unitario <= 0 THEN
+        RAISE EXCEPTION 'El precio unitario debe ser mayor a cero';
+    END IF;
+
+    NEW.subtotal_item := NEW.cantidad * NEW.precio_unitario;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_calcular_subtotal_detalle ON detalles_pedido;
+CREATE TRIGGER trg_calcular_subtotal_detalle
+BEFORE INSERT OR UPDATE ON detalles_pedido
+FOR EACH ROW
+EXECUTE FUNCTION trg_calcular_subtotal_detalle_fn();
+
+
+/*
+ Trigger: actualizar total del pedido (AFTER INSERT OR UPDATE OR DELETE ON detalles_pedido)
+*/
+CREATE OR REPLACE FUNCTION trg_actualizar_total_pedido_fn()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_id_pedido TEXT;
+    v_nuevo_subtotal numeric;
+    v_impuestos numeric;
+    v_descuentos numeric;
+    v_nuevo_total numeric;
+BEGIN
+    IF (TG_OP = 'INSERT' OR TG_OP = 'UPDATE') THEN
+        v_id_pedido := NEW.id_pedido;
+    ELSE
+        v_id_pedido := OLD.id_pedido;
+    END IF;
+
+    SELECT COALESCE(SUM(subtotal_item),0) INTO v_nuevo_subtotal FROM detalles_pedido WHERE id_pedido = v_id_pedido;
+    SELECT COALESCE(impuestos,0), COALESCE(descuentos,0) INTO v_impuestos, v_descuentos FROM pedidos WHERE id_pedido = v_id_pedido;
+
+    v_nuevo_total := v_nuevo_subtotal + v_impuestos - v_descuentos;
+
+    UPDATE pedidos SET subtotal = v_nuevo_subtotal, total = v_nuevo_total WHERE id_pedido = v_id_pedido;
+
+    RETURN NULL;
+EXCEPTION WHEN OTHERS THEN
+    RAISE EXCEPTION 'Error al actualizar total del pedido: %', SQLERRM;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_actualizar_total_pedido ON detalles_pedido;
+CREATE TRIGGER trg_actualizar_total_pedido
+AFTER INSERT OR UPDATE OR DELETE ON detalles_pedido
+FOR EACH ROW
+EXECUTE FUNCTION trg_actualizar_total_pedido_fn();
+
+
+-- ---------------------------
+-- 8) Dashboard Ejecutivo (procedimiento equivalente)
+-- ---------------------------
+
+-- Retorna métricas y tendencias (dos llamadas separadas)
+CREATE OR REPLACE FUNCTION fn_dashboard_metricas()
+RETURNS TABLE (metrica text, valor text, detalle text)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 'Ventas Hoy' AS metrica,
+           to_char(COALESCE(SUM(CASE WHEN date_trunc('day', p.fecha_pedido) = CURRENT_DATE THEN p.total END),0),'FM$999,999,990.00') AS valor,
+           COALESCE(COUNT(CASE WHEN date_trunc('day', p.fecha_pedido) = CURRENT_DATE THEN p.id_pedido END),0)::text || ' pedidos' AS detalle
+    FROM pedidos p WHERE p.estado = 'PAGADO'
+    UNION ALL
+    SELECT 'Ventas Mes Actual' AS metrica,
+           to_char(COALESCE(SUM(CASE WHEN EXTRACT(MONTH FROM p.fecha_pedido) = EXTRACT(MONTH FROM CURRENT_DATE) AND EXTRACT(YEAR FROM p.fecha_pedido) = EXTRACT(YEAR FROM CURRENT_DATE) THEN p.total END),0),'FM$999,999,990.00') AS valor,
+           COALESCE(COUNT(CASE WHEN EXTRACT(MONTH FROM p.fecha_pedido) = EXTRACT(MONTH FROM CURRENT_DATE) AND EXTRACT(YEAR FROM p.fecha_pedido) = EXTRACT(YEAR FROM CURRENT_DATE) THEN p.id_pedido END),0)::text || ' pedidos' AS detalle
+    FROM pedidos p WHERE p.estado = 'PAGADO'
+    UNION ALL
+    SELECT 'Productos con Stock Bajo' AS metrica,
+           COALESCE(COUNT(*),0)::text AS valor,
+           'De ' || COALESCE((SELECT COUNT(*) FROM productos WHERE COALESCE(activo, TRUE) = TRUE),0)::text || ' productos activos' AS detalle
+    FROM productos pr WHERE COALESCE(pr.activo, TRUE) = TRUE AND pr.stock_actual <= pr.stock_minimo
+    UNION ALL
+    SELECT 'Clientes Activos' AS metrica,
+           COALESCE(COUNT(DISTINCT p.id_cliente),0)::text AS valor,
+           'Últimos 30 días' AS detalle
+    FROM pedidos p WHERE p.estado = 'PAGADO' AND p.fecha_pedido >= (CURRENT_DATE - INTERVAL '30 days') AND p.id_cliente IS NOT NULL
+    UNION ALL
+    SELECT 'Ticket Promedio' AS metrica,
+           to_char(ROUND(COALESCE(AVG(p.total),0)::numeric,2),'FM$999,990.00') AS valor,
+           'Últimos 30 días' AS detalle
+    FROM pedidos p WHERE p.estado = 'PAGADO' AND p.fecha_pedido >= (CURRENT_DATE - INTERVAL '30 days');
+END;
+$$;
+
+
+CREATE OR REPLACE FUNCTION fn_dashboard_tendencias()
+RETURNS TABLE (
+    año integer,
+    mes integer,
+    nombre_mes text,
+    total_pedidos bigint,
+    total_ventas numeric,
+    clientes_unicos bigint,
+    ticket_promedio numeric,
+    ventas_mes_anterior numeric,
+    crecimiento_porcentual numeric,
+    venta_promedio_por_pedido numeric
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    WITH ventas_mensuales AS (
+        SELECT
+            EXTRACT(YEAR FROM p.fecha_pedido)::int AS año,
+            EXTRACT(MONTH FROM p.fecha_pedido)::int AS mes,
+            to_char(p.fecha_pedido,'TMMonth') AS nombre_mes,
+            COUNT(p.id_pedido)::bigint AS total_pedidos,
+            SUM(p.total)::numeric AS total_ventas,
+            COUNT(DISTINCT p.id_cliente)::bigint AS clientes_unicos,
+            AVG(p.total)::numeric AS ticket_promedio
+        FROM pedidos p
+        WHERE p.estado = 'PAGADO'
+          AND p.fecha_pedido >= (CURRENT_DATE - INTERVAL '12 months')
+        GROUP BY EXTRACT(YEAR FROM p.fecha_pedido), EXTRACT(MONTH FROM p.fecha_pedido), to_char(p.fecha_pedido,'TMMonth')
+    )
+    SELECT
+        año,
+        mes,
+        trim(nombre_mes) AS nombre_mes,
+        total_pedidos,
+        ROUND(total_ventas,2) AS total_ventas,
+        clientes_unicos,
+        ROUND(ticket_promedio::numeric,2) AS ticket_promedio,
+        LAG(total_ventas) OVER (ORDER BY año, mes) AS ventas_mes_anterior,
+        ROUND(((total_ventas - LAG(total_ventas) OVER (ORDER BY año, mes)) / NULLIF(LAG(total_ventas) OVER (ORDER BY año, mes),0) * 100)::numeric,2) AS crecimiento_porcentual,
+        ROUND(total_ventas / NULLIF(total_pedidos,0)::numeric,2) AS venta_promedio_por_pedido
+    FROM ventas_mensuales
+    ORDER BY año DESC, mes DESC;
+END;
+$$;
+
+
+-- ---------------------------
+-- 9) Ejemplos de ejecución y jobs
+-- ---------------------------
+
+-- Ejemplo: ejecutar reporte stock actual
+-- SELECT * FROM fn_reporte_stock_actual(true);
+
+-- Ejemplo: ejecutar dashboard métricas
+-- SELECT * FROM fn_dashboard_metricas();
+
+-- Jobs automáticos: ejemplo con pg_cron (requiere extensión y configuración en el servidor).
+-- Si usas pg_cron, descomenta y adapta. El siguiente es un ejemplo que ejecuta una función diaria a las 08:00:
+-- SELECT cron.schedule('0 8 * * *', $$SELECT fn_dashboard_metricas();$$);
+
+-- Alternativa: usar pgAgent o un job externo (cron + psql)
+
+-- ==================================================================================
+-- FIN DEL SCRIPT
+-- ==================================================================================

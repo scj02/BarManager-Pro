@@ -1,0 +1,346 @@
+{% extends "barmanager/base.html" %}
+
+{% block title %}Reservas - BarManager Pro{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Header -->
+    <div class="row text-center mb-5">
+        <div class="col-12">
+            <h1 class="display-4 fw-bold mb-3">Reserva tu Mesa</h1>
+            <p class="lead text-muted">Asegura tu lugar en nuestro bar</p>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Reservation Form -->
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-primary text-white text-center py-4">
+                    <h3 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Formulario de Reserva</h3>
+                </div>
+                <div class="card-body p-5">
+                    <form id="reservationForm">
+                        <div class="row g-3">
+                            <!-- Personal Information -->
+                            <div class="col-md-6">
+                                <label for="customerName" class="form-label fw-bold">
+                                    <i class="fas fa-user me-2"></i>Nombre Completo *
+                                </label>
+                                <input type="text" class="form-control" id="customerName" required>
+                                <div class="invalid-feedback">Por favor ingresa tu nombre completo.</div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="customerEmail" class="form-label fw-bold">
+                                    <i class="fas fa-envelope me-2"></i>Email *
+                                </label>
+                                <input type="email" class="form-control" id="customerEmail" required>
+                                <div class="invalid-feedback">Por favor ingresa un email válido.</div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="customerPhone" class="form-label fw-bold">
+                                    <i class="fas fa-phone me-2"></i>Teléfono
+                                </label>
+                                <input type="tel" class="form-control" id="customerPhone" placeholder="+57 300 123 4567">
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="partySize" class="form-label fw-bold">
+                                    <i class="fas fa-users me-2"></i>Número de Personas *
+                                </label>
+                                <select class="form-select" id="partySize" required>
+                                    <option value="">Seleccionar...</option>
+                                    <option value="1">1 persona</option>
+                                    <option value="2">2 personas</option>
+                                    <option value="3">3 personas</option>
+                                    <option value="4">4 personas</option>
+                                    <option value="5">5 personas</option>
+                                    <option value="6">6 personas</option>
+                                    <option value="7">7 personas</option>
+                                    <option value="8">8 personas</option>
+                                </select>
+                                <div class="invalid-feedback">Por favor selecciona el número de personas.</div>
+                            </div>
+                            
+                            <!-- Date and Time -->
+                            <div class="col-md-6">
+                                <label for="reservationDate" class="form-label fw-bold">
+                                    <i class="fas fa-calendar me-2"></i>Fecha *
+                                </label>
+                                <input type="date" class="form-control" id="reservationDate" required>
+                                <div class="invalid-feedback">Por favor selecciona una fecha.</div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="reservationTime" class="form-label fw-bold">
+                                    <i class="fas fa-clock me-2"></i>Hora *
+                                </label>
+                                <select class="form-select" id="reservationTime" required>
+                                    <option value="">Seleccionar hora...</option>
+                                    <option value="18:00">6:00 PM</option>
+                                    <option value="18:30">6:30 PM</option>
+                                    <option value="19:00">7:00 PM</option>
+                                    <option value="19:30">7:30 PM</option>
+                                    <option value="20:00">8:00 PM</option>
+                                    <option value="20:30">8:30 PM</option>
+                                    <option value="21:00">9:00 PM</option>
+                                    <option value="21:30">9:30 PM</option>
+                                    <option value="22:00">10:00 PM</option>
+                                </select>
+                                <div class="invalid-feedback">Por favor selecciona una hora.</div>
+                            </div>
+                            
+                            <!-- Mesa Selection -->
+                            <div class="col-12">
+                                <label for="mesaSelect" class="form-label fw-bold">
+                                    <i class="fas fa-table me-2"></i>Mesa Preferida
+                                </label>
+                                <select class="form-select" id="mesaSelect">
+                                    <option value="">Cualquier mesa disponible</option>
+                                </select>
+                                <small class="text-muted">Las mesas se actualizarán según la disponibilidad</small>
+                            </div>
+                            
+                            <!-- Special Requests -->
+                            <div class="col-12">
+                                <label for="specialRequests" class="form-label fw-bold">
+                                    <i class="fas fa-comment me-2"></i>Solicitudes Especiales
+                                </label>
+                                <textarea class="form-control" id="specialRequests" rows="3" 
+                                          placeholder="Celebraciones especiales, preferencias de ubicación, etc."></textarea>
+                            </div>
+                        </div>
+                        
+                        <!-- Availability Check -->
+                        <div class="mt-4">
+                            <div id="availabilityCheck" class="alert" style="display: none;"></div>
+                        </div>
+                        
+                        <!-- Submit Button -->
+                        <div class="text-center mt-4">
+                            <button type="button" class="btn btn-outline-primary me-3" id="checkAvailability">
+                                <i class="fas fa-search me-2"></i>Verificar Disponibilidad
+                            </button>
+                            <button type="submit" class="btn btn-primary btn-lg" id="submitReservation">
+                                <i class="fas fa-calendar-check me-2"></i>Confirmar Reserva
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-check-circle me-2"></i>¡Reserva Exitosa!
+                </h5>
+            </div>
+            <div class="modal-body text-center">
+                <div class="mb-4">
+                    <i class="fas fa-calendar-check fa-4x text-success mb-3"></i>
+                    <h4>¡Tu reserva ha sido enviada!</h4>
+                    <p class="text-muted">Te contactaremos pronto para confirmar los detalles.</p>
+                </div>
+                <div id="reservationDetails" class="text-start bg-light p-3 rounded">
+                    <!-- Reservation details will be inserted here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" data-bs-dismiss="modal">Entendido</button>
+                <a href="{{ url_for('index') }}" class="btn btn-outline-success">Volver al Inicio</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('reservationForm');
+    const checkBtn = document.getElementById('checkAvailability');
+    const submitBtn = document.getElementById('submitReservation');
+    const dateInput = document.getElementById('reservationDate');
+    const timeInput = document.getElementById('reservationTime');
+    const partySizeInput = document.getElementById('partySize');
+    
+    // Set minimum date to today
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.min = today;
+    
+    // Check availability
+    checkBtn.addEventListener('click', checkAvailability);
+    
+    // Form submission
+    form.addEventListener('submit', handleSubmit);
+    
+    // Update available tables when party size changes
+    partySizeInput.addEventListener('change', updateAvailableTables);
+});
+
+function updateAvailableTables() {
+    const partySize = document.getElementById('partySize').value;
+    const mesaSelect = document.getElementById('mesaSelect');
+    
+    if (!partySize) return;
+    
+    fetch(`/api/mesas/disponibles?personas=${partySize}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                mesaSelect.innerHTML = '<option value="">Cualquier mesa disponible</option>';
+                data.data.forEach(mesa => {
+                    const option = document.createElement('option');
+                    option.value = mesa.numero_mesa;
+                    option.textContent = `${mesa.numero_mesa} - ${mesa.ubicacion} (${mesa.capacidad} personas)`;
+                    mesaSelect.appendChild(option);
+                });
+            }
+        })
+        .catch(error => console.error('Error loading tables:', error));
+}
+
+function checkAvailability() {
+    const date = document.getElementById('reservationDate').value;
+    const time = document.getElementById('reservationTime').value;
+    const partySize = document.getElementById('partySize').value;
+    const availabilityDiv = document.getElementById('availabilityCheck');
+    const submitBtn = document.getElementById('submitReservation');
+    
+    if (!date || !time || !partySize) {
+        showAlert('Por favor completa fecha, hora y número de personas', 'warning');
+        return;
+    }
+    
+    // Show loading
+    availabilityDiv.className = 'alert alert-info';
+    availabilityDiv.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Verificando disponibilidad...';
+    availabilityDiv.style.display = 'block';
+    
+    fetch(`/api/mesas/disponibles?personas=${partySize}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (data.disponibles) {
+                    availabilityDiv.className = 'alert alert-success';
+                    availabilityDiv.innerHTML = `<i class="fas fa-check-circle me-2"></i>¡Disponible! Hay ${data.data.length} mesa(s) disponible(s) para ${partySize} persona(s).`;
+                    submitBtn.disabled = false;
+                } else {
+                    availabilityDiv.className = 'alert alert-warning';
+                    availabilityDiv.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>No hay mesas disponibles para el número de personas seleccionado.';
+                    submitBtn.disabled = true;
+                }
+            } else {
+                throw new Error(data.error || 'Error al verificar disponibilidad');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            availabilityDiv.className = 'alert alert-danger';
+            availabilityDiv.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Error al verificar disponibilidad. Inténtalo de nuevo.';
+            submitBtn.disabled = true;
+        });
+}
+
+function handleSubmit(e) {
+    e.preventDefault();
+    
+    if (!form.checkValidity()) {
+        e.stopPropagation();
+        form.classList.add('was-validated');
+        return;
+    }
+    
+    const submitBtn = document.getElementById('submitReservation');
+    const originalText = submitBtn.innerHTML;
+    
+    // Show loading
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Enviando...';
+    
+    const mesaSelect = document.getElementById('mesaSelect');
+    const selectedMesa = mesaSelect.value || mesaSelect.options[1]?.value || 'M001';
+    
+    const formData = {
+        nombre: document.getElementById('customerName').value,
+        email: document.getElementById('customerEmail').value,
+        telefono: document.getElementById('customerPhone').value,
+        personas: parseInt(document.getElementById('partySize').value),
+        fecha: document.getElementById('reservationDate').value,
+        hora: document.getElementById('reservationTime').value,
+        mesa: selectedMesa,
+        observaciones: document.getElementById('specialRequests').value
+    };
+    
+    fetch('/api/reservas', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccessModal(data.data);
+            form.reset();
+            form.classList.remove('was-validated');
+            document.getElementById('availabilityCheck').style.display = 'none';
+        } else {
+            throw new Error(data.error || 'Error al crear la reserva');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error al enviar la reserva. Por favor inténtalo de nuevo.', 'danger');
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    });
+}
+
+function showSuccessModal(reserva) {
+    const detailsDiv = document.getElementById('reservationDetails');
+    
+    detailsDiv.innerHTML = `
+        <h6 class="fw-bold mb-2">Detalles de tu reserva:</h6>
+        <p class="mb-1"><strong>Nombre:</strong> ${reserva.cliente_nombre}</p>
+        <p class="mb-1"><strong>Fecha:</strong> ${reserva.fecha_reserva}</p>
+        <p class="mb-1"><strong>Hora:</strong> ${reserva.hora_reserva}</p>
+        <p class="mb-1"><strong>Personas:</strong> ${reserva.numero_personas}</p>
+        <p class="mb-1"><strong>Mesa:</strong> ${reserva.mesa_numero}</p>
+        <p class="mb-1"><strong>Estado:</strong> <span class="badge bg-warning">Pendiente de confirmación</span></p>
+    `;
+    
+    const modal = new bootstrap.Modal(document.getElementById('successModal'));
+    modal.show();
+}
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.container');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

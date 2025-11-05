@@ -1,0 +1,112 @@
+Diccionario de Datos
+BarManager Pro
+
+
+ 
+
+
+
+
+Por:
+Sergio Valderrama
+Cristian Cruz
+Julian Antonio Mejía Eslava 
+
+
+
+
+Docente: Christian Felipe Duarte
+
+
+
+
+
+Septiembre de 2025
+Bogotá D.C.
+
+
+
+Tipos de Datos Estándar
+* UUID: Identificadores únicos universales (36 caracteres)
+* VARCHAR(n): Cadenas de texto de longitud variable
+* TEXT: Texto largo sin límite específico
+* DECIMAL(p,s): Números decimales con precisión y escala
+* INTEGER: Números enteros
+* BOOLEAN: Valores verdadero/falso
+* DATE: Fechas (YYYY-MM-DD)
+* TIME: Horas (HH:MM:SS)
+* DATETIME: Fecha y hora combinadas
+* TIMESTAMP: Marca de tiempo con zona horaria
+* ENUM: Lista de valores predefinidos
+Abreviaciones Utilizadas
+* PK: Primary Key (Clave Primaria)
+* FK: Foreign Key (Clave Foránea)
+* UK: Unique Key (Clave Única)
+* NN: Not Null (No Nulo)
+* AI: Auto Increment (Auto Incremento)
+* DF: Default (Valor por Defecto)
+
+Tablas del Sistema
+TABLA: CATEGORIAS
+Descripción: Almacena las categorías de productos disponibles en el bar (bebidas, comidas, snacks, etc.)
+CampoTipoLongitudRestriccionesDescripciónEjemploid_categoriaUUID36PK, NNIdentificador único de la categoría550e8400-e29b-41d4-a716-446655440000nombre_categoriaVARCHAR50NN, UKNombre descriptivo de la categoría"Bebidas Alcohólicas"descripcionTEXT--Descripción detallada de la categoría"Incluye cervezas, vinos, licores y cócteles"activaBOOLEAN1NN, DF=TRUEIndica si la categoría está activaTRUEfecha_creacionTIMESTAMP-NN, DF=NOW()Fecha y hora de creación del registro2025-09-21 10:30:00Reglas de Negocio:
+*  El nombre de categoría debe ser único en el sistema
+*  No se puede eliminar una categoría que tenga productos asociados
+* Solo categorías activas pueden tener productos nuevos
+
+TABLA: PRODUCTOS
+Descripción: Contiene información de todos los productos disponibles para venta en el bar
+CampoTipoLongitudRestriccionesDescripciónEjemploid_productoUUID36PK, NNIdentificador único del producto550e8400-e29b-41d4-a716-446655440001id_categoriaUUID36FK, NNReferencia a la categoría del producto550e8400-e29b-41d4-a716-446655440000nombreVARCHAR100NNNombre comercial del producto"Cerveza Corona 355ml"descripcionTEXT--Descripción detallada del producto"Cerveza clara mexicana, botella de 355ml"precio_compraDECIMAL10,2NN, >0Precio de compra al proveedor25.50precio_ventaDECIMAL10,2NN, >=precio_compraPrecio de venta al cliente45.00stock_actualINTEGER-NN, >=0, DF=0Cantidad actual en inventario150stock_minimoINTEGER-NN, >=0, DF=0Cantidad mínima antes de reorden20unidad_medidaVARCHAR20NNUnidad de medida del producto"Botella", "Litro", "Porción"activoBOOLEAN1NN, DF=TRUEIndica si el producto está activoTRUEfecha_creacionTIMESTAMP-NN, DF=NOW()Fecha y hora de creación2025-09-21 10:30:00
+Reglas de Negocio:
+* El precio de venta debe ser mayor o igual al precio de compra
+* Productos con stock menor al mínimo generan alerta automática
+* No se puede vender un producto inactivo
+
+TABLA: PUESTOS
+Descripción: Define los diferentes puestos de trabajo disponibles en el bar
+CampoTipoLongitudRestriccionesDescripciónEjemploid_puestoUUID36PK, NNIdentificador único del puesto550e8400-e29b-41d4-a716-446655440002nombre_puestoVARCHAR50NN, UKNombre del puesto de trabajo"Mesero", "Bartender", "Cajero"descripcionTEXT--Descripción de responsabilidades"Atiende mesas y toma pedidos de clientes"salario_minimoDECIMAL10,2>0Salario mínimo para el puesto15000.00salario_maximoDECIMAL10,2>=salario_minimoSalario máximo para el puesto25000.00comision_porcentajeDECIMAL5,20-100, DF=0Porcentaje de comisión sobre ventas5.50activoBOOLEAN1NN, DF=TRUEIndica si el puesto está activoTRUE
+TABLA: EMPLEADOS
+Descripción: Información personal y laboral de todos los empleados del bar
+CampoTipoLongitudRestriccionesDescripciónEjemploid_empleadoUUID36PK, NNIdentificador único del empleado550e8400-e29b-41d4-a716-446655440003id_puestoUUID36FK, NNReferencia al puesto del empleado550e8400-e29b-41d4-a716-446655440002codigo_empleadoVARCHAR20NN, UKCódigo interno del empleado"EMP001", "BAR002"nombreVARCHAR100NNNombre(s) del empleado"Juan Carlos"apellidoVARCHAR100NNApellido(s) del empleado"García López"emailVARCHAR100UKCorreo electrónico corporativo"juan.garcia@barmanagerpro.com"telefonoVARCHAR20-Número de teléfono de contacto"+52-555-123-4567"fecha_ingresoDATE-NNFecha de ingreso a la empresa2025-01-15salario_baseDECIMAL10,2>0Salario base mensual18000.00activoBOOLEAN1NN, DF=TRUEIndica si el empleado está activoTRUEfecha_creacionTIMESTAMP-NN, DF=NOW()Fecha de creación del registro2025-09-21 10:30:00Reglas de Negocio:
+* El código de empleado debe ser único en el sistema
+* El email debe ser único si se especifica
+* La fecha de ingreso no puede ser futura
+* El salario debe estar dentro del rango del puesto
+
+TABLA: CLIENTES
+Descripción: Base de datos de clientes del bar
+CampoTipoLongitudRestriccionesDescripciónEjemploid_clienteUUID36PK, NNIdentificador único del cliente550e8400-e29b-41d4-a716-446655440004nombreVARCHAR100NNNombre(s) del cliente"María Elena"apellidoVARCHAR100NNApellido(s) del cliente"Rodríguez Martínez"telefonoVARCHAR20-Número de teléfono del cliente"+52-555-987-6543"emailVARCHAR100-Correo electrónico del cliente"maria.rodriguez@email.com"fecha_nacimientoDATE--Fecha de nacimiento para promociones1985-03-15fecha_registroTIMESTAMP-NN, DF=NOW()Fecha de registro en el sistema2025-09-21 10:30:00activoBOOLEAN1NN, DF=TRUEIndica si el cliente está activoTRUEReglas de Negocio:
+* Clientes inactivos por 6 meses se marcan automáticamente
+* Descuentos automáticos se aplican según la antiguedad del cliente
+
+TABLA: MESAS
+Descripción: Información de las mesas disponibles en el bar
+CampoTipoLongitudRestriccionesDescripciónEjemploid_mesaUUID36PK, NNIdentificador único de la mesa550e8400-e29b-41d4-a716-446655440005numero_mesaVARCHAR10NN, UKNúmero identificador de la mesa"M001", "T15", "BAR03"capacidadINTEGER-NN, >0Número máximo de personas4ubicacionVARCHAR50-Ubicación física en el bar"Terraza", "Interior", "Barra"estadoENUM-NN, DF='LIBRE'Estado actual de la mesaLIBRE, OCUPADA, RESERVADA, MANTENIMIENTOactivaBOOLEAN1NN, DF=TRUEIndica si la mesa está disponibleTRUE
+TABLA: RESERVAS
+Descripción: Gestión de reservas de mesas realizadas por clientes
+CampoTipoLongitudRestriccionesDescripciónEjemploid_reservaUUID36PK, NNIdentificador único de la reserva550e8400-e29b-41d4-a716-446655440006id_clienteUUID36FKReferencia al cliente (opcional)550e8400-e29b-41d4-a716-446655440004id_mesaUUID36FK, NNReferencia a la mesa reservada550e8400-e29b-41d4-a716-446655440005fecha_reservaDATETIME-NNFecha y hora de la reserva2025-09-25 19:30:00hora_reservaTIME-NNHora específica de la reserva19:30:00numero_personasINTEGER-NN, >0Cantidad de personas para la reserva6estadoENUM-NN, DF='PENDIENTE'Estado de la reservaPENDIENTE, CONFIRMADA, CANCELADA, COMPLETADAobservacionesTEXT--Notas adicionales de la reserva"Mesa cerca de la ventana, celebración cumpleaños"fecha_creacionTIMESTAMP-NN, DF=NOW()Fecha de creación de la reserva2025-09-21 10:30:00
+TABLA: PEDIDOS
+Descripción: Registro de todos los pedidos realizados por los clientes
+CampoTipoLongitudRestriccionesDescripciónEjemploid_pedidoUUID36PK, NNIdentificador único del pedido550e8400-e29b-41d4-a716-446655440007id_empleadoUUID36FK, NNEmpleado que atiende el pedido550e8400-e29b-41d4-a716-446655440003id_clienteUUID36FKCliente que realiza el pedido (opcional)550e8400-e29b-41d4-a716-446655440004id_mesaUUID36FK, NNMesa donde se realiza el pedido550e8400-e29b-41d4-a716-446655440005numero_pedidoVARCHAR20NN, UKNúmero secuencial del pedido"PED-20250921-0001"fecha_pedidoTIMESTAMP-NN, DF=NOW()Fecha y hora del pedido2025-09-21 14:30:00subtotalDECIMAL10,2NN, >=0, DF=0Subtotal antes de impuestos y descuentos450.00impuestosDECIMAL10,2NN, >=0, DF=0Impuestos aplicados72.00descuentosDECIMAL10,2>=0, DF=0Descuentos aplicados25.00totalDECIMAL10,2NN, >=0, DF=0Total final del pedido497.00estadoENUM-NN, DF='PENDIENTE'Estado actual del pedidoPENDIENTE, EN_PREPARACION, LISTO, ENTREGADO, PAGADO, CANCELADOobservacionesTEXT--Notas especiales del pedido"Sin cebolla en hamburguesa, extra salsa"
+TABLA: DETALLES_PEDIDO
+Descripción: Detalle de productos incluidos en cada pedido
+CampoTipoLongitudRestriccionesDescripciónEjemploid_detalleUUID36PK, NNIdentificador único del detalle550e8400-e29b-41d4-a716-446655440008id_pedidoUUID36FK, NNReferencia al pedido padre550e8400-e29b-41d4-a716-446655440007id_productoUUID36FK, NNProducto incluido en el pedido550e8400-e29b-41d4-a716-446655440001cantidadINTEGER-NN, >0Cantidad del producto pedido3precio_unitarioDECIMAL10,2NN, >0Precio unitario al momento del pedido45.00subtotal_itemDECIMAL10,2NN, >0Subtotal del item (cantidad × precio_unitario)135.00observacionesTEXT--Notas específicas del item"Término medio, sin verduras"Reglas de Negocio:
+* El subtotal_item debe ser igual a cantidad × precio_unitario
+* No se puede modificar un detalle de pedido pagado
+* El precio_unitario se toma del producto al momento del pedido
+
+TABLA: PAGOS
+Descripción: Registro de pagos realizados para los pedidos
+CampoTipoLongitudRestriccionesDescripciónEjemploid_pagoUUID36PK, NNIdentificador único del pago550e8400-e29b-41d4-a716-446655440009id_pedidoUUID36FK, NNReferencia al pedido pagado550e8400-e29b-41d4-a716-446655440007montoDECIMAL10,2NN, >0Monto del pago497.00metodo_pagoENUM-NNMétodo utilizado para el pagoEFECTIVO, TARJETA_CREDITO, TARJETA_DEBITO, TRANSFERENCIA, DIGITALfecha_pagoTIMESTAMP-NN, DF=NOW()Fecha y hora del pago2025-09-21 15:45:00numero_transaccionVARCHAR50-Número de transacción (si aplica)"TXN123456789"estadoENUM-NN, DF='PENDIENTE'Estado del pagoPENDIENTE, PROCESADO, APROBADO, RECHAZADO, CANCELADOobservacionesTEXT--Notas adicionales del pago"Pago dividido en 2 tarjetas"
+TABLA: PROVEEDORES
+Descripción: Información de proveedores de productos para el bar
+CampoTipoLongitudRestriccionesDescripciónEjemploid_proveedorUUID36PK, NNIdentificador único del proveedor550e8400-e29b-41d4-a716-44665544000Anombre_empresaVARCHAR100NNRazón social del proveedor"Distribuidora de Bebidas SA"contactoVARCHAR100-Nombre del contacto principal"Roberto Martínez"telefonoVARCHAR20-Teléfono de contacto"+52-555-111-2222"emailVARCHAR100-Correo electrónico de contacto"ventas@distribuidora.com"direccionTEXT--Dirección física del proveedor"Av. Industrial 123, Col. Centro"activoBOOLEAN1NN, DF=TRUEIndica si el proveedor está activoTRUEfecha_registroTIMESTAMP-NN, DF=NOW()Fecha de registro en el sistema2025-09-21 10:30:00
+TABLA: TURNOS
+Descripción: Definición de turnos de trabajo en el bar
+CampoTipoLongitudRestriccionesDescripciónEjemploid_turnoUUID36PK, NNIdentificador único del turno550e8400-e29b-41d4-a716-44665544000BfechaDATE-NNFecha del turno2025-09-21hora_inicioTIME-NNHora de inicio del turno08:00:00hora_finTIME-NN, >hora_inicioHora de fin del turno16:00:00horas_trabajadasDECIMAL4,2>0Total de horas del turno8.00estadoENUM-NN, DF='PROGRAMADO'Estado del turnoPROGRAMADO, ACTIVO, COMPLETADO, CANCELADOobservacionesTEXT--Notas adicionales del turno"Turno matutino, alta demanda esperada"
+TABLA: EMPLEADOS_TURNOS
+Descripción: Tabla de relación muchos a muchos entre empleados y turnos
+CampoTipoLongitudRestriccionesDescripciónEjemploid_empleado_turnoUUID36PK, NNIdentificador único de la asignación550e8400-e29b-41d4-a716-44665544000Cid_empleadoUUID36FK, NNReferencia al empleado550e8400-e29b-41d4-a716-446655440003id_turnoUUID36FK, NNReferencia al turno550e8400-e29b-41d4-a716-44665544000Bfecha_asignacionTIMESTAMP-NN, DF=NOW()Fecha de asignación del turno2025-09-21 10:30:00estadoENUM-NN, DF='ASIGNADO'Estado de la asignaciónASIGNADO, CONFIRMADO, COMPLETADO, AUSENTE
+TABLA: MOVIMIENTOS_INVENTARIO
+Descripción: Registro de todos los movimientos de inventario (entradas, salidas, ajustes)
+CampoTipoLongitudRestriccionesDescripciónEjemploid_movimientoUUID36PK, NNIdentificador único del movimiento550e8400-e29b-41d4-a716-44665544000Did_productoUUID36FK, NNProducto afectado por el movimiento550e8400-e29b-41d4-a716-446655440001id_empleadoUUID36FK, NNEmpleado que ejecuta el movimiento550e8400-e29b-41d4-a716-446655440003id_proveedorUUID36FKProveedor (solo para entradas)550e8400-e29b-41d4-a716-44665544000Atipo_movimientoENUM-NNTipo de movimiento de inventarioENTRADA, SALIDA, AJUSTE, MERMAcantidadINTEGER-NN, !=0Cantidad del movimiento (+ o -)50fecha_movimientoTIMESTAMP-NN, DF=NOW()Fecha y hora del movimiento2025-09-21 11:15:00motivoVARCHAR100-Motivo del movimiento"Compra semanal", "Venta", "Inventario físico"documento_referenciaVARCHAR50-Número de documento de respaldo"FAC-001234", "PED-20250921-0001"observacionesTEXT--Notas adicionales"Producto con fecha próxima a vencer"

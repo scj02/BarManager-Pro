@@ -1,0 +1,841 @@
+{% extends "barmanager/admin/base.html" %}
+
+{% block title %}Clientes - BarManager Pro{% endblock %}
+
+{% block page_title %}Gestión de Clientes{% endblock %}
+
+{% block content %}
+<!-- Estadísticas de Clientes -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <i class="fas fa-users fa-2x text-primary mb-2"></i>
+                <h4 class="fw-bold">{{ clientes|length if clientes else 127 }}</h4>
+                <small class="text-muted">Total Clientes</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card-success">
+            <div class="card-body text-center">
+                <i class="fas fa-user-plus fa-2x text-success mb-2"></i>
+                <h4 class="fw-bold">8</h4>
+                <small class="text-muted">Nuevos Este Mes</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card-warning">
+            <div class="card-body text-center">
+                <i class="fas fa-star fa-2x text-warning mb-2"></i>
+                <h4 class="fw-bold">
+                    {% if clientes %}
+                        {{ clientes|sum(attribute='puntos_fidelidad')|default(0) }}
+                    {% else %}
+                        2450
+                    {% endif %}
+                </h4>
+                <small class="text-muted">Puntos Totales</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card-info">
+            <div class="card-body text-center">
+                <i class="fas fa-birthday-cake fa-2x text-info mb-2"></i>
+                <h4 class="fw-bold">3</h4>
+                <small class="text-muted">Cumpleaños Hoy</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Panel de Control -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-address-book me-2"></i>Gestión de Clientes</h5>
+                <div class="btn-group">
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalCliente">
+                        <i class="fas fa-user-plus me-2"></i>Nuevo Cliente
+                    </button>
+                    <button class="btn btn-info" onclick="exportarClientes()">
+                        <i class="fas fa-download me-2"></i>Exportar
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Filtros -->
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <input type="text" class="form-control" id="buscarCliente" placeholder="Buscar cliente...">
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="filtroFidelidad">
+                            <option value="">Todos los niveles</option>
+                            <option value="bronce">Bronce (0-100 pts)</option>
+                            <option value="plata">Plata (101-500 pts)</option>
+                            <option value="oro">Oro (501+ pts)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="filtroMes">
+                            <option value="">Todos los meses</option>
+                            <option value="1">Enero</option>
+                            <option value="2">Febrero</option>
+                            <option value="3">Marzo</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Mayo</option>
+                            <option value="6">Junio</option>
+                            <option value="7">Julio</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Septiembre</option>
+                            <option value="10">Octubre</option>
+                            <option value="11">Noviembre</option>
+                            <option value="12">Diciembre</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-outline-secondary w-100" onclick="limpiarFiltros()">
+                            <i class="fas fa-eraser me-2"></i>Limpiar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla de Clientes -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-list me-2"></i>Lista de Clientes</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="tablaClientes">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Contacto</th>
+                                <th>Fecha Nacimiento</th>
+                                <th>Fecha Registro</th>
+                                <th>Puntos Fidelidad</th>
+                                <th>Nivel</th>
+                                <th>Última Visita</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Clientes de ejemplo -->
+                            <tr data-fidelidad="oro" data-mes="3">
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-circle me-2">JP</div>
+                                        <div>
+                                            <strong>Juan Pérez</strong>
+                                            <br><small class="text-muted">Cliente frecuente</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <i class="fas fa-phone text-muted me-1"></i>+57 301 123 4567<br>
+                                    <i class="fas fa-envelope text-muted me-1"></i>juan@email.com
+                                </td>
+                                <td>15/03/1985</td>
+                                <td>10/01/2024</td>
+                                <td>
+                                    <span class="fw-bold text-warning">750 pts</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="fas fa-crown me-1"></i>Oro
+                                    </span>
+                                </td>
+                                <td>Hace 2 días</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" onclick="editarCliente('1')" title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-outline-info" onclick="verHistorial('1')" title="Historial">
+                                            <i class="fas fa-history"></i>
+                                        </button>
+                                        <button class="btn btn-outline-success" onclick="agregarPuntos('1')" title="Puntos">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                        <button class="btn btn-outline-warning" onclick="enviarPromocion('1')" title="Promoción">
+                                            <i class="fas fa-gift"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr data-fidelidad="plata" data-mes="7">
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-circle me-2">MG</div>
+                                        <div>
+                                            <strong>María González</strong>
+                                            <br><small class="text-muted">Cliente regular</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <i class="fas fa-phone text-muted me-1"></i>+57 301 987 6543<br>
+                                    <i class="fas fa-envelope text-muted me-1"></i>maria@email.com
+                                </td>
+                                <td>22/07/1990</td>
+                                <td>15/02/2024</td>
+                                <td>
+                                    <span class="fw-bold text-info">320 pts</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">
+                                        <i class="fas fa-medal me-1"></i>Plata
+                                    </span>
+                                </td>
+                                <td>Hace 1 semana</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" onclick="editarCliente('2')" title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-outline-info" onclick="verHistorial('2')" title="Historial">
+                                            <i class="fas fa-history"></i>
+                                        </button>
+                                        <button class="btn btn-outline-success" onclick="agregarPuntos('2')" title="Puntos">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                        <button class="btn btn-outline-warning" onclick="enviarPromocion('2')" title="Promoción">
+                                            <i class="fas fa-gift"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr data-fidelidad="bronce" data-mes="12">
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-circle me-2">CR</div>
+                                        <div>
+                                            <strong>Carlos Rodríguez</strong>
+                                            <br><small class="text-muted">Cliente nuevo</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <i class="fas fa-phone text-muted me-1"></i>+57 301 555 7890<br>
+                                    <i class="fas fa-envelope text-muted me-1"></i>carlos@email.com
+                                </td>
+                                <td>05/12/1988</td>
+                                <td>01/01/2025</td>
+                                <td>
+                                    <span class="fw-bold text-secondary">85 pts</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark">
+                                        <i class="fas fa-certificate me-1"></i>Bronce
+                                    </span>
+                                </td>
+                                <td>Ayer</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" onclick="editarCliente('3')" title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-outline-info" onclick="verHistorial('3')" title="Historial">
+                                            <i class="fas fa-history"></i>
+                                        </button>
+                                        <button class="btn btn-outline-success" onclick="agregarPuntos('3')" title="Puntos">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                        <button class="btn btn-outline-warning" onclick="enviarPromocion('3')" title="Promoción">
+                                            <i class="fas fa-gift"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nuevo/Editar Cliente -->
+<div class="modal fade" id="modalCliente" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus me-2"></i>
+                    <span id="tituloModalCliente">Nuevo Cliente</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formCliente">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Nombre *</label>
+                                <input type="text" class="form-control" id="nombreCliente" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Apellido *</label>
+                                <input type="text" class="form-control" id="apellidoCliente" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Teléfono</label>
+                                <input type="tel" class="form-control" id="telefonoCliente">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" id="emailCliente">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Fecha de Nacimiento</label>
+                                <input type="date" class="form-control" id="fechaNacimientoCliente">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Puntos Iniciales</label>
+                                <input type="number" class="form-control" id="puntosCliente" min="0" value="0">
+                                <div class="form-text">Puntos de fidelidad iniciales</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Observaciones</label>
+                        <textarea class="form-control" id="observacionesCliente" rows="3" placeholder="Preferencias, alergias, notas especiales..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Guardar Cliente
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Agregar Puntos -->
+<div class="modal fade" id="modalAgregarPuntos" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-star me-2"></i>Gestionar Puntos de Fidelidad
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formAgregarPuntos">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Cliente</label>
+                        <input type="text" class="form-control" id="clientePuntos" readonly>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Puntos Actuales</label>
+                        <input type="text" class="form-control" id="puntosActuales" readonly>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Tipo de Operación</label>
+                                <select class="form-select" id="tipoOperacionPuntos" required>
+                                    <option value="">Seleccionar</option>
+                                    <option value="agregar">Agregar Puntos</option>
+                                    <option value="redimir">Redimir Puntos</option>
+                                    <option value="ajustar">Ajustar Puntos</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Cantidad</label>
+                                <input type="number" class="form-control" id="cantidadPuntos" min="1" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Motivo</label>
+                        <select class="form-select" id="motivoPuntos">
+                            <option value="">Seleccionar motivo</option>
+                            <option value="compra">Compra en el bar</option>
+                            <option value="promocion">Promoción especial</option>
+                            <option value="cumpleanos">Regalo de cumpleaños</option>
+                            <option value="referido">Cliente referido</option>
+                            <option value="redencion">Redención de premio</option>
+                            <option value="ajuste">Ajuste manual</option>
+                            <option value="otro">Otro</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Observaciones</label>
+                        <textarea class="form-control" id="observacionesPuntos" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Niveles de Fidelidad:</strong><br>
+                        <small>
+                            Bronce: 0-100 pts | Plata: 101-500 pts | Oro: 501+ pts
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-star me-2"></i>Procesar Puntos
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Historial Cliente -->
+<div class="modal fade" id="modalHistorialCliente" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-history me-2"></i>Historial del Cliente
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Información del Cliente</h6>
+                            </div>
+                            <div class="card-body" id="infoClienteHistorial">
+                                <!-- Información dinámica -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Historial de Pedidos</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Fecha</th>
+                                                <th>Pedido</th>
+                                                <th>Total</th>
+                                                <th>Puntos</th>
+                                                <th>Estado</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="historialPedidos">
+                                            <!-- Datos dinámicos -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-info" onclick="exportarHistorial()">
+                    <i class="fas fa-download me-2"></i>Exportar Historial
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Enviar Promoción -->
+<div class="modal fade" id="modalEnviarPromocion" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-gift me-2"></i>Enviar Promoción
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formEnviarPromocion">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Cliente</label>
+                        <input type="text" class="form-control" id="clientePromocion" readonly>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Tipo de Promoción</label>
+                        <select class="form-select" id="tipoPromocion" required>
+                            <option value="">Seleccionar promoción</option>
+                            <option value="descuento">Descuento del 20%</option>
+                            <option value="bebida_gratis">Bebida gratis</option>
+                            <option value="cumpleanos">Promoción de cumpleaños</option>
+                            <option value="2x1">2x1 en productos seleccionados</option>
+                            <option value="puntos_dobles">Puntos dobles</option>
+                            <option value="personalizada">Promoción personalizada</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3" id="campoPersonalizada" style="display: none;">
+                        <label class="form-label">Descripción de la Promoción</label>
+                        <textarea class="form-control" id="descripcionPersonalizada" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Fecha de Vencimiento</label>
+                                <input type="date" class="form-control" id="fechaVencimiento" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Método de Envío</label>
+                                <select class="form-select" id="metodoEnvio" required>
+                                    <option value="">Seleccionar</option>
+                                    <option value="email">Email</option>
+                                    <option value="sms">SMS</option>
+                                    <option value="whatsapp">WhatsApp</option>
+                                    <option value="impreso">Cupón impreso</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Mensaje Personalizado</label>
+                        <textarea class="form-control" id="mensajePromocion" rows="3" placeholder="Mensaje adicional para el cliente..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-paper-plane me-2"></i>Enviar Promoción
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #28a745, #20c997);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Variables globales
+let clienteEditando = null;
+
+// Inicialización
+document.addEventListener('DOMContentLoaded', function() {
+    // Calcular estadísticas
+    calcularEstadisticasClientes();
+    
+    // Filtros
+    document.getElementById('buscarCliente').addEventListener('input', filtrarClientes);
+    document.getElementById('filtroFidelidad').addEventListener('change', filtrarClientes);
+    document.getElementById('filtroMes').addEventListener('change', filtrarClientes);
+    
+    // Formularios
+    document.getElementById('formCliente').addEventListener('submit', guardarCliente);
+    document.getElementById('formAgregarPuntos').addEventListener('submit', procesarPuntos);
+    document.getElementById('formEnviarPromocion').addEventListener('submit', enviarPromocionFinal);
+    
+    // Cambios en selects
+    document.getElementById('tipoPromocion').addEventListener('change', function() {
+        const campo = document.getElementById('campoPersonalizada');
+        campo.style.display = this.value === 'personalizada' ? 'block' : 'none';
+    });
+    
+    // Establecer fecha mínima para vencimiento
+    const fechaVencimiento = document.getElementById('fechaVencimiento');
+    const hoy = new Date();
+    hoy.setDate(hoy.getDate() + 1); // Mínimo mañana
+    fechaVencimiento.min = hoy.toISOString().split('T')[0];
+});
+
+// Filtrar clientes
+function filtrarClientes() {
+    const busqueda = document.getElementById('buscarCliente').value.toLowerCase();
+    const fidelidad = document.getElementById('filtroFidelidad').value;
+    const mes = document.getElementById('filtroMes').value;
+    
+    const filas = document.querySelectorAll('#tablaClientes tbody tr');
+    
+    filas.forEach(fila => {
+        const nombre = fila.cells[0].textContent.toLowerCase();
+        const fidelidadFila = fila.dataset.fidelidad;
+        const mesFila = fila.dataset.mes;
+        
+        let mostrar = true;
+        
+        if (busqueda && !nombre.includes(busqueda)) {
+            mostrar = false;
+        }
+        
+        if (fidelidad && fidelidadFila !== fidelidad) {
+            mostrar = false;
+        }
+        
+        if (mes && mesFila !== mes) {
+            mostrar = false;
+        }
+        
+        fila.style.display = mostrar ? '' : 'none';
+    });
+}
+
+// Limpiar filtros
+function limpiarFiltros() {
+    document.getElementById('buscarCliente').value = '';
+    document.getElementById('filtroFidelidad').value = '';
+    document.getElementById('filtroMes').value = '';
+    filtrarClientes();
+}
+
+// Editar cliente
+function editarCliente(id) {
+    clienteEditando = id;
+    document.getElementById('tituloModalCliente').textContent = 'Editar Cliente';
+    
+    // En implementación real, cargar datos del cliente
+    showToast('Función de edición disponible en versión completa', 'info');
+    
+    const modal = new bootstrap.Modal(document.getElementById('modalCliente'));
+    modal.show();
+}
+
+// Guardar cliente
+function guardarCliente(e) {
+    e.preventDefault();
+    
+    const formData = {
+        nombre: document.getElementById('nombreCliente').value,
+        apellido: document.getElementById('apellidoCliente').value,
+        telefono: document.getElementById('telefonoCliente').value,
+        email: document.getElementById('emailCliente').value,
+        fechaNacimiento: document.getElementById('fechaNacimientoCliente').value,
+        puntos: document.getElementById('puntosCliente').value,
+        observaciones: document.getElementById('observacionesCliente').value
+    };
+    
+    if (!formData.nombre || !formData.apellido) {
+        showToast('Complete los campos obligatorios', 'error');
+        return;
+    }
+    
+    showToast(clienteEditando ? 'Cliente actualizado correctamente' : 'Cliente creado correctamente', 'success');
+    
+    bootstrap.Modal.getInstance(document.getElementById('modalCliente')).hide();
+    document.getElementById('formCliente').reset();
+    clienteEditando = null;
+    
+    setTimeout(() => location.reload(), 1500);
+}
+
+// Ver historial del cliente
+function verHistorial(id) {
+    // Simular datos del cliente
+    const infoCliente = document.getElementById('infoClienteHistorial');
+    infoCliente.innerHTML = `
+        <div class="text-center mb-3">
+            <div class="avatar-circle mx-auto mb-2" style="width: 60px; height: 60px; font-size: 20px;">JP</div>
+            <h6>Juan Pérez</h6>
+            <small class="text-muted">Cliente desde: 10/01/2024</small>
+        </div>
+        <hr>
+        <div class="row text-center">
+            <div class="col-6">
+                <h6 class="text-primary">15</h6>
+                <small>Pedidos</small>
+            </div>
+            <div class="col-6">
+                <h6 class="text-success">$450,000</h6>
+                <small>Total Gastado</small>
+            </div>
+        </div>
+        <hr>
+        <div class="row text-center">
+            <div class="col-6">
+                <h6 class="text-warning">750</h6>
+                <small>Puntos</small>
+            </div>
+            <div class="col-6">
+                <h6 class="text-info">Oro</h6>
+                <small>Nivel</small>
+            </div>
+        </div>
+    `;
+    
+    // Simular historial de pedidos
+    const historialPedidos = document.getElementById('historialPedidos');
+    historialPedidos.innerHTML = `
+        <tr>
+            <td>15/01/2025</td>
+            <td>#PED001</td>
+            <td>$41,000</td>
+            <td>+41</td>
+            <td><span class="badge bg-success">Pagado</span></td>
+        </tr>
+        <tr>
+            <td>10/01/2025</td>
+            <td>#PED002</td>
+            <td>$25,000</td>
+            <td>+25</td>
+            <td><span class="badge bg-success">Pagado</span></td>
+        </tr>
+        <tr>
+            <td>05/01/2025</td>
+            <td>#PED003</td>
+            <td>$18,000</td>
+            <td>+18</td>
+            <td><span class="badge bg-success">Pagado</span></td>
+        </tr>
+    `;
+    
+    const modal = new bootstrap.Modal(document.getElementById('modalHistorialCliente'));
+    modal.show();
+}
+
+// Agregar puntos
+function agregarPuntos(id) {
+    document.getElementById('clientePuntos').value = 'Juan Pérez';
+    document.getElementById('puntosActuales').value = '750 puntos';
+    
+    const modal = new bootstrap.Modal(document.getElementById('modalAgregarPuntos'));
+    modal.show();
+}
+
+// Procesar puntos
+function procesarPuntos(e) {
+    e.preventDefault();
+    
+    const tipo = document.getElementById('tipoOperacionPuntos').value;
+    const cantidad = document.getElementById('cantidadPuntos').value;
+    const motivo = document.getElementById('motivoPuntos').value;
+    
+    if (!tipo || !cantidad) {
+        showToast('Complete los campos obligatorios', 'error');
+        return;
+    }
+    
+    showToast(`Puntos ${tipo === 'agregar' ? 'agregados' : tipo === 'redimir' ? 'redimidos' : 'ajustados'} correctamente`, 'success');
+    
+    bootstrap.Modal.getInstance(document.getElementById('modalAgregarPuntos')).hide();
+    document.getElementById('formAgregarPuntos').reset();
+    
+    setTimeout(() => location.reload(), 1500);
+}
+
+// Enviar promoción
+function enviarPromocion(id) {
+    document.getElementById('clientePromocion').value = 'Juan Pérez';
+    
+    const modal = new bootstrap.Modal(document.getElementById('modalEnviarPromocion'));
+    modal.show();
+}
+
+// Enviar promoción final
+function enviarPromocionFinal(e) {
+    e.preventDefault();
+    
+    const tipo = document.getElementById('tipoPromocion').value;
+    const fechaVencimiento = document.getElementById('fechaVencimiento').value;
+    const metodo = document.getElementById('metodoEnvio').value;
+    
+    if (!tipo || !fechaVencimiento || !metodo) {
+        showToast('Complete todos los campos obligatorios', 'error');
+        return;
+    }
+    
+    showToast(`Promoción enviada por ${metodo} correctamente`, 'success');
+    
+    bootstrap.Modal.getInstance(document.getElementById('modalEnviarPromocion')).hide();
+    document.getElementById('formEnviarPromocion').reset();
+}
+
+// Exportar clientes
+function exportarClientes() {
+    showToast('Función de exportación disponible en versión completa', 'info');
+}
+
+// Exportar historial
+function exportarHistorial() {
+    showToast('Historial exportado correctamente', 'success');
+}
+
+// Calcular estadísticas de clientes
+function calcularEstadisticasClientes() {
+    // Los valores se calculan en el backend y se muestran directamente
+    // Esta función se puede usar para cálculos adicionales si es necesario
+}
+
+// Función para mostrar notificaciones
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
+    toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    toast.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 3000);
+}
+</script>
+{% endblock %}

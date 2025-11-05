@@ -1,0 +1,1135 @@
+{% extends "barmanager/admin/base.html" %}
+
+{% block title %}Reportes - BarManager Pro{% endblock %}
+
+{% block page_title %}Reportes y Análisis{% endblock %}
+
+{% block content %}
+<!-- Filtros de Reportes -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtros de Reportes</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <label class="form-label">Tipo de Reporte</label>
+                        <select class="form-select" id="tipoReporte">
+                            <option value="ventas">Ventas</option>
+                            <option value="inventario">Inventario</option>
+                            <option value="clientes">Clientes</option>
+                            <option value="empleados">Empleados</option>
+                            <option value="reservas">Reservas</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Período</label>
+                        <select class="form-select" id="periodoReporte">
+                            <option value="hoy">Hoy</option>
+                            <option value="ayer">Ayer</option>
+                            <option value="semana">Esta Semana</option>
+                            <option value="mes" selected>Este Mes</option>
+                            <option value="trimestre">Este Trimestre</option>
+                            <option value="año">Este Año</option>
+                            <option value="personalizado">Personalizado</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3" id="fechasPersonalizadas" style="display: none;">
+                        <label class="form-label">Desde</label>
+                        <input type="date" class="form-control" id="fechaDesde">
+                    </div>
+                    <div class="col-md-3" id="fechasPersonalizadas2" style="display: none;">
+                        <label class="form-label">Hasta</label>
+                        <input type="date" class="form-control" id="fechaHasta">
+                    </div>
+                    <div class="col-md-3" id="botonGenerar">
+                        <label class="form-label">&nbsp;</label>
+                        <button class="btn btn-primary w-100" onclick="generarReporte()">
+                            <i class="fas fa-chart-line me-2"></i>Generar Reporte
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Resumen Ejecutivo -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stats-card-success">
+            <div class="card-body text-center">
+                <i class="fas fa-dollar-sign fa-2x text-success mb-2"></i>
+                <h4 class="fw-bold">$2,450,000</h4>
+                <small class="text-muted">Ventas del Mes</small>
+                <div class="mt-2">
+                    <small class="text-success">
+                        <i class="fas fa-arrow-up me-1"></i>+15.3%
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card-info">
+            <div class="card-body text-center">
+                <i class="fas fa-shopping-cart fa-2x text-info mb-2"></i>
+                <h4 class="fw-bold">342</h4>
+                <small class="text-muted">Pedidos del Mes</small>
+                <div class="mt-2">
+                    <small class="text-info">
+                        <i class="fas fa-arrow-up me-1"></i>+8.7%
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card-warning">
+            <div class="card-body text-center">
+                <i class="fas fa-users fa-2x text-warning mb-2"></i>
+                <h4 class="fw-bold">127</h4>
+                <small class="text-muted">Clientes Únicos</small>
+                <div class="mt-2">
+                    <small class="text-warning">
+                        <i class="fas fa-arrow-up me-1"></i>+12.1%
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <i class="fas fa-percentage fa-2x text-primary mb-2"></i>
+                <h4 class="fw-bold">68.5%</h4>
+                <small class="text-muted">Margen Promedio</small>
+                <div class="mt-2">
+                    <small class="text-primary">
+                        <i class="fas fa-arrow-up me-1"></i>+2.3%
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs de Reportes -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" id="reportesTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="ventas-tab" data-bs-toggle="tab" data-bs-target="#ventas" type="button" role="tab">
+                            <i class="fas fa-chart-line me-2"></i>Ventas
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="productos-tab" data-bs-toggle="tab" data-bs-target="#productos" type="button" role="tab">
+                            <i class="fas fa-boxes me-2"></i>Productos
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="clientes-tab" data-bs-toggle="tab" data-bs-target="#clientes" type="button" role="tab">
+                            <i class="fas fa-users me-2"></i>Clientes
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="empleados-tab" data-bs-toggle="tab" data-bs-target="#empleados" type="button" role="tab">
+                            <i class="fas fa-user-tie me-2"></i>Empleados
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="financiero-tab" data-bs-toggle="tab" data-bs-target="#financiero" type="button" role="tab">
+                            <i class="fas fa-calculator me-2"></i>Financiero
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content" id="reportesTabsContent">
+                    <!-- Tab Ventas -->
+                    <div class="tab-pane fade show active" id="ventas" role="tabpanel">
+                        <div class="row mb-4">
+                            <div class="col-md-8">
+                                <div class="card">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0">Tendencia de Ventas</h6>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="exportarGrafico('ventas')">
+                                            <i class="fas fa-download me-1"></i>Exportar
+                                        </button>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="graficoVentas" width="400" height="200"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Ventas por Categoría</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="graficoCategoriasVentas" width="200" height="200"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0">Top Productos Más Vendidos</h6>
+                                        <button class="btn btn-sm btn-outline-success" onclick="exportarTabla('top-productos')">
+                                            <i class="fas fa-file-excel me-1"></i>Excel
+                                        </button>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover" id="tablaTopProductos">
+                                                <thead class="table-dark">
+                                                    <tr>
+                                                        <th>Posición</th>
+                                                        <th>Producto</th>
+                                                        <th>Categoría</th>
+                                                        <th>Cantidad Vendida</th>
+                                                        <th>Ingresos</th>
+                                                        <th>Margen</th>
+                                                        <th>% del Total</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td><span class="badge bg-warning">1</span></td>
+                                                        <td><strong>Cerveza Corona</strong></td>
+                                                        <td>Bebidas Alcohólicas</td>
+                                                        <td>245 unidades</td>
+                                                        <td class="text-success fw-bold">$1,960,000</td>
+                                                        <td>68.8%</td>
+                                                        <td>
+                                                            <div class="progress" style="height: 20px;">
+                                                                <div class="progress-bar bg-success" style="width: 35%">35%</div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><span class="badge bg-secondary">2</span></td>
+                                                        <td><strong>Bandeja Paisa</strong></td>
+                                                        <td>Platos Principales</td>
+                                                        <td>89 unidades</td>
+                                                        <td class="text-success fw-bold">$2,225,000</td>
+                                                        <td>52.0%</td>
+                                                        <td>
+                                                            <div class="progress" style="height: 20px;">
+                                                                <div class="progress-bar bg-info" style="width: 25%">25%</div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><span class="badge bg-warning text-dark">3</span></td>
+                                                        <td><strong>Hamburguesa Clásica</strong></td>
+                                                        <td>Comida Rápida</td>
+                                                        <td>156 unidades</td>
+                                                        <td class="text-success fw-bold">$2,340,000</td>
+                                                        <td>60.0%</td>
+                                                        <td>
+                                                            <div class="progress" style="height: 20px;">
+                                                                <div class="progress-bar bg-warning" style="width: 20%">20%</div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>4</td>
+                                                        <td><strong>Aguardiente Antioqueño</strong></td>
+                                                        <td>Bebidas Alcohólicas</td>
+                                                        <td>67 unidades</td>
+                                                        <td class="text-success fw-bold">$2,345,000</td>
+                                                        <td>57.1%</td>
+                                                        <td>
+                                                            <div class="progress" style="height: 20px;">
+                                                                <div class="progress-bar bg-primary" style="width: 15%">15%</div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>5</td>
+                                                        <td><strong>Sancocho de Gallina</strong></td>
+                                                        <td>Platos Principales</td>
+                                                        <td>43 unidades</td>
+                                                        <td class="text-success fw-bold">$860,000</td>
+                                                        <td>60.0%</td>
+                                                        <td>
+                                                            <div class="progress" style="height: 20px;">
+                                                                <div class="progress-bar bg-secondary" style="width: 10%">10%</div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tab Productos -->
+                    <div class="tab-pane fade" id="productos" role="tabpanel">
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Rotación de Inventario</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="graficoRotacion" width="300" height="200"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Productos con Stock Bajo</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-sm">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Producto</th>
+                                                        <th>Stock Actual</th>
+                                                        <th>Stock Mínimo</th>
+                                                        <th>Estado</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td>Limonada de Coco</td>
+                                                        <td>8</td>
+                                                        <td>15</td>
+                                                        <td><span class="badge bg-danger">Crítico</span></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Empanadas Vallenas</td>
+                                                        <td>3</td>
+                                                        <td>20</td>
+                                                        <td><span class="badge bg-danger">Crítico</span></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Tres Leches</td>
+                                                        <td>20</td>
+                                                        <td>25</td>
+                                                        <td><span class="badge bg-warning">Bajo</span></td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Análisis de Rentabilidad por Producto</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover">
+                                                <thead class="table-dark">
+                                                    <tr>
+                                                        <th>Producto</th>
+                                                        <th>Precio Compra</th>
+                                                        <th>Precio Venta</th>
+                                                        <th>Margen Unitario</th>
+                                                        <th>Margen %</th>
+                                                        <th>Unidades Vendidas</th>
+                                                        <th>Ganancia Total</th>
+                                                        <th>ROI</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td><strong>Cerveza Corona</strong></td>
+                                                        <td>$2,500</td>
+                                                        <td>$8,000</td>
+                                                        <td class="text-success">$5,500</td>
+                                                        <td>68.8%</td>
+                                                        <td>245</td>
+                                                        <td class="text-success fw-bold">$1,347,500</td>
+                                                        <td><span class="badge bg-success">220%</span></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><strong>Bandeja Paisa</strong></td>
+                                                        <td>$12,000</td>
+                                                        <td>$25,000</td>
+                                                        <td class="text-success">$13,000</td>
+                                                        <td>52.0%</td>
+                                                        <td>89</td>
+                                                        <td class="text-success fw-bold">$1,157,000</td>
+                                                        <td><span class="badge bg-success">108%</span></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><strong>Hamburguesa Clásica</strong></td>
+                                                        <td>$6,000</td>
+                                                        <td>$15,000</td>
+                                                        <td class="text-success">$9,000</td>
+                                                        <td>60.0%</td>
+                                                        <td>156</td>
+                                                        <td class="text-success fw-bold">$1,404,000</td>
+                                                        <td><span class="badge bg-success">150%</span></td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tab Clientes -->
+                    <div class="tab-pane fade" id="clientes" role="tabpanel">
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Segmentación de Clientes</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="graficoSegmentacion" width="300" height="200"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Métricas de Fidelidad</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row text-center">
+                                            <div class="col-4">
+                                                <h4 class="text-primary">4.2</h4>
+                                                <small>Visitas Promedio</small>
+                                            </div>
+                                            <div class="col-4">
+                                                <h4 class="text-success">$28,500</h4>
+                                                <small>Ticket Promedio</small>
+                                            </div>
+                                            <div class="col-4">
+                                                <h4 class="text-warning">73%</h4>
+                                                <small>Retención</small>
+                                            </div>
+                                        </div>
+                                        <hr>
+                                        <div class="row text-center">
+                                            <div class="col-4">
+                                                <h6 class="text-warning">Oro</h6>
+                                                <small>15 clientes</small>
+                                            </div>
+                                            <div class="col-4">
+                                                <h6 class="text-secondary">Plata</h6>
+                                                <small>42 clientes</small>
+                                            </div>
+                                            <div class="col-4">
+                                                <h6 class="text-light">Bronce</h6>
+                                                <small>70 clientes</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Top Clientes por Valor</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover">
+                                                <thead class="table-dark">
+                                                    <tr>
+                                                        <th>Cliente</th>
+                                                        <th>Nivel</th>
+                                                        <th>Total Gastado</th>
+                                                        <th>Pedidos</th>
+                                                        <th>Ticket Promedio</th>
+                                                        <th>Última Visita</th>
+                                                        <th>Puntos</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td>
+                                                            <div class="d-flex align-items-center">
+                                                                <div class="avatar-circle me-2">JP</div>
+                                                                <strong>Juan Pérez</strong>
+                                                            </div>
+                                                        </td>
+                                                        <td><span class="badge bg-warning text-dark">Oro</span></td>
+                                                        <td class="text-success fw-bold">$450,000</td>
+                                                        <td>15</td>
+                                                        <td>$30,000</td>
+                                                        <td>Hace 2 días</td>
+                                                        <td>750</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>
+                                                            <div class="d-flex align-items-center">
+                                                                <div class="avatar-circle me-2">MG</div>
+                                                                <strong>María González</strong>
+                                                            </div>
+                                                        </td>
+                                                        <td><span class="badge bg-secondary">Plata</span></td>
+                                                        <td class="text-success fw-bold">$320,000</td>
+                                                        <td>12</td>
+                                                        <td>$26,667</td>
+                                                        <td>Hace 1 semana</td>
+                                                        <td>320</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>
+                                                            <div class="d-flex align-items-center">
+                                                                <div class="avatar-circle me-2">CR</div>
+                                                                <strong>Carlos Rodríguez</strong>
+                                                            </div>
+                                                        </td>
+                                                        <td><span class="badge bg-light text-dark">Bronce</span></td>
+                                                        <td class="text-success fw-bold">$85,000</td>
+                                                        <td>3</td>
+                                                        <td>$28,333</td>
+                                                        <td>Ayer</td>
+                                                        <td>85</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tab Empleados -->
+                    <div class="tab-pane fade" id="empleados" role="tabpanel">
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Rendimiento por Empleado</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="graficoRendimiento" width="300" height="200"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Métricas de Personal</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row text-center mb-3">
+                                            <div class="col-6">
+                                                <h4 class="text-primary">95%</h4>
+                                                <small>Asistencia Promedio</small>
+                                            </div>
+                                            <div class="col-6">
+                                                <h4 class="text-success">8.2h</h4>
+                                                <small>Horas Promedio/Día</small>
+                                            </div>
+                                        </div>
+                                        <div class="row text-center">
+                                            <div class="col-6">
+                                                <h4 class="text-warning">$85,000</h4>
+                                                <small>Salario Promedio</small>
+                                            </div>
+                                            <div class="col-6">
+                                                <h4 class="text-info">4.5/5</h4>
+                                                <small>Evaluación Promedio</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Desempeño Individual</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover">
+                                                <thead class="table-dark">
+                                                    <tr>
+                                                        <th>Empleado</th>
+                                                        <th>Puesto</th>
+                                                        <th>Pedidos Atendidos</th>
+                                                        <th>Ventas Generadas</th>
+                                                        <th>Comisiones</th>
+                                                        <th>Asistencia</th>
+                                                        <th>Evaluación</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td>
+                                                            <div class="d-flex align-items-center">
+                                                                <div class="avatar-circle me-2">CR</div>
+                                                                <strong>Carlos Rodríguez</strong>
+                                                            </div>
+                                                        </td>
+                                                        <td>Mesero</td>
+                                                        <td>156</td>
+                                                        <td class="text-success">$1,250,000</td>
+                                                        <td class="text-warning">$62,500</td>
+                                                        <td>
+                                                            <div class="progress" style="height: 20px;">
+                                                                <div class="progress-bar bg-success" style="width: 98%">98%</div>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="text-warning">
+                                                                <i class="fas fa-star"></i>
+                                                                <i class="fas fa-star"></i>
+                                                                <i class="fas fa-star"></i>
+                                                                <i class="fas fa-star"></i>
+                                                                <i class="fas fa-star"></i>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>
+                                                            <div class="d-flex align-items-center">
+                                                                <div class="avatar-circle me-2">MG</div>
+                                                                <strong>María González</strong>
+                                                            </div>
+                                                        </td>
+                                                        <td>Bartender</td>
+                                                        <td>89</td>
+                                                        <td class="text-success">$890,000</td>
+                                                        <td class="text-warning">$26,700</td>
+                                                        <td>
+                                                            <div class="progress" style="height: 20px;">
+                                                                <div class="progress-bar bg-success" style="width: 95%">95%</div>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="text-warning">
+                                                                <i class="fas fa-star"></i>
+                                                                <i class="fas fa-star"></i>
+                                                                <i class="fas fa-star"></i>
+                                                                <i class="fas fa-star"></i>
+                                                                <i class="far fa-star"></i>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tab Financiero -->
+                    <div class="tab-pane fade" id="financiero" role="tabpanel">
+                        <div class="row mb-4">
+                            <div class="col-md-8">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Flujo de Caja</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="graficoFlujoCaja" width="400" height="200"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Resumen Financiero</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <div class="d-flex justify-content-between">
+                                                <span>Ingresos Totales:</span>
+                                                <strong class="text-success">$2,450,000</strong>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <div class="d-flex justify-content-between">
+                                                <span>Costos de Productos:</span>
+                                                <strong class="text-danger">$980,000</strong>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <div class="d-flex justify-content-between">
+                                                <span>Gastos Operativos:</span>
+                                                <strong class="text-warning">$650,000</strong>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <div class="d-flex justify-content-between">
+                                                <span>Nómina:</span>
+                                                <strong class="text-info">$320,000</strong>
+                                            </div>
+                                        </div>
+                                        <hr>
+                                        <div class="d-flex justify-content-between">
+                                            <span><strong>Utilidad Neta:</strong></span>
+                                            <strong class="text-success">$500,000</strong>
+                                        </div>
+                                        <div class="mt-2">
+                                            <small class="text-muted">Margen: 20.4%</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Métodos de Pago</h6>
+                    </div>
+                                    <div class="card-body">
+                                        <canvas id="graficoMetodosPago" width="300" height="200"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Análisis de Costos</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="graficoCostos" width="300" height="200"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Botones de Exportación -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-download me-2"></i>Exportar Reportes</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <button class="btn btn-success w-100 mb-2" onclick="exportarExcel()">
+                            <i class="fas fa-file-excel me-2"></i>Exportar a Excel
+                        </button>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-danger w-100 mb-2" onclick="exportarPDF()">
+                            <i class="fas fa-file-pdf me-2"></i>Exportar a PDF
+                        </button>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-info w-100 mb-2" onclick="enviarEmail()">
+                            <i class="fas fa-envelope me-2"></i>Enviar por Email
+                        </button>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-warning w-100 mb-2" onclick="programarReporte()">
+                            <i class="fas fa-clock me-2"></i>Programar Reporte
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #6f42c1, #e83e8c);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.stats-card, .stats-card-success, .stats-card-info, .stats-card-warning {
+    transition: transform 0.2s;
+}
+
+.stats-card:hover, .stats-card-success:hover, .stats-card-info:hover, .stats-card-warning:hover {
+    transform: translateY(-2px);
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Variables globales para los gráficos
+let graficos = {};
+
+// Inicialización
+document.addEventListener('DOMContentLoaded', function() {
+    // Configurar filtros
+    document.getElementById('periodoReporte').addEventListener('change', function() {
+        const fechasPersonalizadas = document.getElementById('fechasPersonalizadas');
+        const fechasPersonalizadas2 = document.getElementById('fechasPersonalizadas2');
+        const botonGenerar = document.getElementById('botonGenerar');
+        
+        if (this.value === 'personalizado') {
+            fechasPersonalizadas.style.display = 'block';
+            fechasPersonalizadas2.style.display = 'block';
+            botonGenerar.className = 'col-md-3';
+        } else {
+            fechasPersonalizadas.style.display = 'none';
+            fechasPersonalizadas2.style.display = 'none';
+            botonGenerar.className = 'col-md-3';
+        }
+    });
+    
+    // Inicializar gráficos
+    inicializarGraficos();
+});
+
+// Inicializar todos los gráficos
+function inicializarGraficos() {
+    // Gráfico de ventas
+    const ctxVentas = document.getElementById('graficoVentas').getContext('2d');
+    graficos.ventas = new Chart(ctxVentas, {
+        type: 'line',
+        data: {
+            labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+            datasets: [{
+                label: 'Ventas 2025',
+                data: [1200000, 1350000, 1180000, 1450000, 1680000, 1920000, 2100000, 1980000, 2250000, 2180000, 2350000, 2450000],
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                tension: 0.4,
+                fill: true
+            }, {
+                label: 'Ventas 2024',
+                data: [980000, 1100000, 1050000, 1200000, 1380000, 1520000, 1680000, 1750000, 1890000, 1950000, 2050000, 2120000],
+                borderColor: '#6c757d',
+                backgroundColor: 'rgba(108, 117, 125, 0.1)',
+                tension: 0.4,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Gráfico de categorías de ventas
+    const ctxCategoriasVentas = document.getElementById('graficoCategoriasVentas').getContext('2d');
+    graficos.categoriasVentas = new Chart(ctxCategoriasVentas, {
+        type: 'doughnut',
+        data: {
+            labels: ['Bebidas Alcohólicas', 'Platos Principales', 'Comida Rápida', 'Bebidas No Alcohólicas', 'Postres'],
+            datasets: [{
+                data: [35, 25, 20, 12, 8],
+                backgroundColor: [
+                    '#ff6384',
+                    '#36a2eb',
+                    '#ffce56',
+                    '#4bc0c0',
+                    '#9966ff'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                }
+            }
+        }
+    });
+    
+    // Gráfico de rotación de inventario
+    const ctxRotacion = document.getElementById('graficoRotacion').getContext('2d');
+    graficos.rotacion = new Chart(ctxRotacion, {
+        type: 'bar',
+        data: {
+            labels: ['Cerveza Corona', 'Bandeja Paisa', 'Hamburguesa', 'Aguardiente', 'Sancocho'],
+            datasets: [{
+                label: 'Rotación (días)',
+                data: [3, 7, 5, 12, 8],
+                backgroundColor: [
+                    '#28a745',
+                    '#ffc107',
+                    '#28a745',
+                    '#dc3545',
+                    '#ffc107'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Días'
+                    }
+                }
+            }
+        }
+    });
+    
+    // Gráfico de segmentación de clientes
+    const ctxSegmentacion = document.getElementById('graficoSegmentacion').getContext('2d');
+    graficos.segmentacion = new Chart(ctxSegmentacion, {
+        type: 'pie',
+        data: {
+            labels: ['Oro', 'Plata', 'Bronce'],
+            datasets: [{
+                data: [15, 42, 70],
+                backgroundColor: ['#ffc107', '#6c757d', '#cd7f32']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                }
+            }
+        }
+    });
+    
+    // Gráfico de rendimiento de empleados
+    const ctxRendimiento = document.getElementById('graficoRendimiento').getContext('2d');
+    graficos.rendimiento = new Chart(ctxRendimiento, {
+        type: 'radar',
+        data: {
+            labels: ['Ventas', 'Atención', 'Puntualidad', 'Trabajo en Equipo', 'Conocimiento'],
+            datasets: [{
+                label: 'Carlos Rodríguez',
+                data: [9, 8, 10, 9, 8],
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.2)'
+            }, {
+                label: 'María González',
+                data: [8, 9, 9, 10, 9],
+                borderColor: '#007bff',
+                backgroundColor: 'rgba(0, 123, 255, 0.2)'
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    max: 10
+                }
+            }
+        }
+    });
+    
+    // Gráfico de flujo de caja
+    const ctxFlujoCaja = document.getElementById('graficoFlujoCaja').getContext('2d');
+    graficos.flujoCaja = new Chart(ctxFlujoCaja, {
+        type: 'bar',
+        data: {
+            labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+            datasets: [{
+                label: 'Ingresos',
+                data: [1200000, 1350000, 1180000, 1450000, 1680000, 1920000, 2100000, 1980000, 2250000, 2180000, 2350000, 2450000],
+                backgroundColor: '#28a745'
+            }, {
+                label: 'Gastos',
+                data: [950000, 1080000, 980000, 1150000, 1320000, 1520000, 1680000, 1580000, 1750000, 1680000, 1850000, 1950000],
+                backgroundColor: '#dc3545'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Gráfico de métodos de pago
+    const ctxMetodosPago = document.getElementById('graficoMetodosPago').getContext('2d');
+    graficos.metodosPago = new Chart(ctxMetodosPago, {
+        type: 'doughnut',
+        data: {
+            labels: ['Efectivo', 'Tarjeta Crédito', 'Tarjeta Débito', 'Transferencia', 'Digital'],
+            datasets: [{
+                data: [45, 25, 15, 10, 5],
+                backgroundColor: [
+                    '#28a745',
+                    '#007bff',
+                    '#ffc107',
+                    '#17a2b8',
+                    '#6f42c1'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                }
+            }
+        }
+    });
+    
+    // Gráfico de análisis de costos
+    const ctxCostos = document.getElementById('graficoCostos').getContext('2d');
+    graficos.costos = new Chart(ctxCostos, {
+        type: 'pie',
+        data: {
+            labels: ['Productos', 'Nómina', 'Servicios', 'Alquiler', 'Otros'],
+            datasets: [{
+                data: [40, 25, 15, 12, 8],
+                backgroundColor: [
+                    '#dc3545',
+                    '#ffc107',
+                    '#17a2b8',
+                    '#6c757d',
+                    '#6f42c1'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                }
+            }
+        }
+    });
+}
+
+// Generar reporte
+function generarReporte() {
+    const tipo = document.getElementById('tipoReporte').value;
+    const periodo = document.getElementById('periodoReporte').value;
+    
+    showToast(`Generando reporte de ${tipo} para ${periodo}...`, 'info');
+    
+    // Simular generación de reporte
+    setTimeout(() => {
+        showToast('Reporte generado correctamente', 'success');
+        // Aquí se actualizarían los gráficos y tablas
+    }, 2000);
+}
+
+// Exportar gráfico
+function exportarGrafico(tipo) {
+    showToast(`Exportando gráfico de ${tipo}...`, 'info');
+}
+
+// Exportar tabla
+function exportarTabla(tabla) {
+    showToast(`Exportando tabla ${tabla} a Excel...`, 'success');
+}
+
+// Exportar a Excel
+function exportarExcel() {
+    showToast('Exportando reporte completo a Excel...', 'success');
+}
+
+// Exportar a PDF
+function exportarPDF() {
+    showToast('Exportando reporte completo a PDF...', 'success');
+}
+
+// Enviar por email
+function enviarEmail() {
+    showToast('Reporte enviado por email correctamente', 'success');
+}
+
+// Programar reporte
+function programarReporte() {
+    showToast('Función de programación disponible en versión completa', 'info');
+}
+
+// Función para mostrar notificaciones
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
+    toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    toast.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 3000);
+}
+</script>
+{% endblock %}

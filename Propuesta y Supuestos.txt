@@ -1,0 +1,70 @@
+Propuesta y Supuestos
+BarManager Pro
+
+
+ 
+
+
+
+
+Por:
+Sergio Valderrama
+Cristian Cruz
+Julian Antonio Mejía Eslava 
+
+
+
+
+Docente: Christian Felipe Duarte
+
+
+
+
+
+Septiembre de 2025
+Bogotá D.C.
+
+
+BarManager Pro es un sistema de gestión diseñado para las operaciones de bares esta solución ayudara con los procesos de inventario, de gestión de ventas, de administración de personal y generación de reportes analíticos.
+Situación Actual
+En los bares operan normalmente con sistemas manuales o parcialmente digitalizados los cuales pueden presentar diferentes dificultades como los son:
+* El control de Inventario puede ocasionar pérdidas por falta de control de stock o desabastecimientos.
+* La gestión de Ventas Ineficiente pude ocasionar errores en los pedidos y si se hacen cálculos de manera manual los cálculos pueden estar propensos a errores.
+* La administración de personal cuando el negocio empieza a crecer se puede dificultar la gestión de turnos o el calcular comisiones.
+* La falta de ausencia de reportes que ayuden a la toma de decisiones puede hacer que se tomen las decisiones equivocadas.
+* La experiencia del cliente es limitada puesto que se puede tener tiempos de espera largos o errores en órdenes.
+Objetivos del Proyecto
+Objetivo General
+Desarrollar un sistema de gestión que automatice y optimice todas las operaciones de un bar con ello se busca mejorar la eficiencia operativa, el control financiero y la experiencia del cliente.
+Objetivos Específicos
+* Automatizar el control de inventario con alertas de stock bajo
+* Digitalizar el proceso de ventas y generación de pedidos
+* Implementar sistema de gestión de empleados y turnos
+* Implementar base de datos centralizada y segura
+* Generar reportes para toma de decisiones 
+Alcance del Proyecto
+El proyecto va a contar con las siguientes funcionalidades a continuación se van a explicar cada uno de los módulos;
+Módulo de Inventario: este módulo va a contener la gestión completa de los productos con sus categorías, va a contar con alertas automáticas de stock cuando no vea muchas unidades del producto, también con la gestión de proveedores y el historial de movimientos del inventario.
+Módulo de Ventas: este módulo va a contener un sistema de pedidos por mesa, una generación de facturas y aplicación de descuentos y promociones 
+Módulo de Personal: este módulo va a contar con el registro y gestión de empleados, va a contar con el control de turnos y horarios, la idea es que el sistema calcule las comisiones de cada empleado, esto se va a hacer dependiendo del rol del empleado y también se va a poder dar permisos a los empleados. 
+Módulo de Clientes: este módulo va a contar con una base de datos para los clientes el cual dará el historial de compras de este
+Módulo de Reportes: este módulo contará con reportes de ventas por periodo, dará un reporte de desempeño del empleado teniendo en cuenta su desempeño. 
+Módulo de Administración: este módulo contara con la gestión de mesas y reservas, contara con un sistema de logs.
+Exclusiones del Proyecto
+* El sistema no contara con un sistema de pagos 
+* El sistema no tendrá opción de domicilios 
+Tecnologías Propuestas
+* Backend: Node.js
+* Base de Datos: PostgreSQL, MongoDB
+* Frontend: HTML
+Cronograma 
+Supuestos 
+Se va a empezar diciendo que el bar cuenta con al menos 10-15 mesas y atiende entre 50-100 clientes diarios en promedio, también cuenta con 3-8 empleados trabajando por turno, con los siguientes roles ya sea meseros, bartenders y cajero. El bar atenderá 12 horas diarias ya sea de 6 o 7 días a la semana. También se tendrá en cuenta que puede manejar entre 30-100 productos diferentes en su inventario.
+Cuando el stock de un producto esté por debajo del 10% del nivel mínimo establecido, el sistema generará una alerta automática. También los precios de los productos podrán variar de manera dinámica en función de promociones, descuentos u horarios especiales.
+El sistema se implementará en una máquina virtual con sistema operativo Linux y base de datos, también los reportes analíticos se generarán al cierre de cada jornada y se almacenarán en MongoDB para consultas históricas.
+El sistema no permitirá registrar ventas a menores de edad por lo consiguiente todo cliente deberá contar con fecha de nacimiento en el registro. Como se tendrán promociones se colocará un límite de máximo de dos promociones por pedido.
+Si una reserva no llega en un plazo de 15 minutos posteriores a la hora asignada, el sistema liberará la mesa automáticamente.
+El sistema contará con verificación de usuarios por lo cual deberá autenticarse mediante credenciales seguras.
+El sistema generará registros de auditoría para las operaciones como modificaciones de inventario, las anulaciones de pedidos, cuando se apliquen descuentos y si se cambia el rol de los empleados.
+
+

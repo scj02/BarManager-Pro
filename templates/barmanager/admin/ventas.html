@@ -1,0 +1,784 @@
+{% extends "barmanager/admin/base.html" %}
+
+{% block title %}Ventas - BarManager Pro{% endblock %}
+
+{% block page_title %}Gestión de Ventas y Pedidos{% endblock %}
+
+{% block content %}
+<!-- Estadísticas de Ventas -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stats-card-success">
+            <div class="card-body text-center">
+                <i class="fas fa-dollar-sign fa-2x text-success mb-2"></i>
+                <h4 class="fw-bold">${{ "{:,.0f}".format(125000) }}</h4>
+                <small class="text-muted">Ventas Hoy</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card-info">
+            <div class="card-body text-center">
+                <i class="fas fa-shopping-cart fa-2x text-info mb-2"></i>
+                <h4 class="fw-bold">{{ pedidos|length if pedidos else 8 }}</h4>
+                <small class="text-muted">Pedidos Activos</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card-warning">
+            <div class="card-body text-center">
+                <i class="fas fa-clock fa-2x text-warning mb-2"></i>
+                <h4 class="fw-bold">3</h4>
+                <small class="text-muted">En Preparación</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <i class="fas fa-users fa-2x text-primary mb-2"></i>
+                <h4 class="fw-bold">{{ clientes|length if clientes else 15 }}</h4>
+                <small class="text-muted">Clientes Atendidos</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Panel de Control de Ventas -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-cash-register me-2"></i>Panel de Ventas</h5>
+                <div class="btn-group">
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalNuevoPedido">
+                        <i class="fas fa-plus me-2"></i>Nuevo Pedido
+                    </button>
+                    <button class="btn btn-info" onclick="actualizarEstados()">
+                        <i class="fas fa-sync me-2"></i>Actualizar
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Filtros -->
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <select class="form-select" id="filtroEstado">
+                            <option value="">Todos los estados</option>
+                            <option value="PENDIENTE">Pendiente</option>
+                            <option value="EN_PREPARACION">En Preparación</option>
+                            <option value="LISTO">Listo</option>
+                            <option value="ENTREGADO">Entregado</option>
+                            <option value="PAGADO">Pagado</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="filtroMesa">
+                            <option value="">Todas las mesas</option>
+                            {% for mesa in mesas %}
+                            <option value="{{ mesa.id }}">Mesa {{ mesa.numero_mesa }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <input type="date" class="form-control" id="filtroFecha" value="{{ moment().format('YYYY-MM-DD') if moment else '' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <input type="text" class="form-control" id="buscarPedido" placeholder="Buscar pedido...">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pedidos Activos -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-list me-2"></i>Pedidos del Día</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="tablaPedidos">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Pedido</th>
+                                <th>Mesa</th>
+                                <th>Cliente</th>
+                                <th>Empleado</th>
+                                <th>Hora</th>
+                                <th>Items</th>
+                                <th>Total</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Pedidos de ejemplo -->
+                            <tr>
+                                <td><strong>#PED001</strong></td>
+                                <td>Mesa 5</td>
+                                <td>Juan Pérez</td>
+                                <td>Carlos Rodríguez</td>
+                                <td>14:30</td>
+                                <td>
+                                    <small>
+                                        2x Cerveza Corona<br>
+                                        1x Bandeja Paisa
+                                    </small>
+                                </td>
+                                <td class="fw-bold text-success">$41,000</td>
+                                <td>
+                                    <select class="form-select form-select-sm" onchange="cambiarEstado('PED001', this.value)">
+                                        <option value="PENDIENTE">Pendiente</option>
+                                        <option value="EN_PREPARACION" selected>En Preparación</option>
+                                        <option value="LISTO">Listo</option>
+                                        <option value="ENTREGADO">Entregado</option>
+                                        <option value="PAGADO">Pagado</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" onclick="verDetallePedido('PED001')" title="Ver Detalle">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-success" onclick="procesarPago('PED001')" title="Procesar Pago">
+                                            <i class="fas fa-credit-card"></i>
+                                        </button>
+                                        <button class="btn btn-outline-info" onclick="imprimirTicket('PED001')" title="Imprimir">
+                                            <i class="fas fa-print"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>#PED002</strong></td>
+                                <td>Mesa 3</td>
+                                <td>María González</td>
+                                <td>María González</td>
+                                <td>15:15</td>
+                                <td>
+                                    <small>
+                                        1x Limonada de Coco<br>
+                                        2x Empanadas Vallenas
+                                    </small>
+                                </td>
+                                <td class="fw-bold text-success">$12,000</td>
+                                <td>
+                                    <select class="form-select form-select-sm" onchange="cambiarEstado('PED002', this.value)">
+                                        <option value="PENDIENTE">Pendiente</option>
+                                        <option value="EN_PREPARACION">En Preparación</option>
+                                        <option value="LISTO" selected>Listo</option>
+                                        <option value="ENTREGADO">Entregado</option>
+                                        <option value="PAGADO">Pagado</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" onclick="verDetallePedido('PED002')" title="Ver Detalle">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-success" onclick="procesarPago('PED002')" title="Procesar Pago">
+                                            <i class="fas fa-credit-card"></i>
+                                        </button>
+                                        <button class="btn btn-outline-info" onclick="imprimirTicket('PED002')" title="Imprimir">
+                                            <i class="fas fa-print"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>#PED003</strong></td>
+                                <td>Mesa 8</td>
+                                <td>Cliente Anónimo</td>
+                                <td>Carlos Rodríguez</td>
+                                <td>16:00</td>
+                                <td>
+                                    <small>
+                                        1x Hamburguesa Clásica<br>
+                                        1x Tres Leches
+                                    </small>
+                                </td>
+                                <td class="fw-bold text-success">$23,000</td>
+                                <td>
+                                    <select class="form-select form-select-sm" onchange="cambiarEstado('PED003', this.value)">
+                                        <option value="PENDIENTE" selected>Pendiente</option>
+                                        <option value="EN_PREPARACION">En Preparación</option>
+                                        <option value="LISTO">Listo</option>
+                                        <option value="ENTREGADO">Entregado</option>
+                                        <option value="PAGADO">Pagado</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" onclick="verDetallePedido('PED003')" title="Ver Detalle">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-success" onclick="procesarPago('PED003')" title="Procesar Pago">
+                                            <i class="fas fa-credit-card"></i>
+                                        </button>
+                                        <button class="btn btn-outline-info" onclick="imprimirTicket('PED003')" title="Imprimir">
+                                            <i class="fas fa-print"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nuevo Pedido -->
+<div class="modal fade" id="modalNuevoPedido" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus me-2"></i>Nuevo Pedido
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <!-- Información del Pedido -->
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Información del Pedido</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Mesa *</label>
+                                    <select class="form-select" id="mesaPedido" required>
+                                        <option value="">Seleccionar mesa</option>
+                                        {% for mesa in mesas %}
+                                        <option value="{{ mesa.id }}">Mesa {{ mesa.numero_mesa }} ({{ mesa.capacidad }} personas)</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Cliente</label>
+                                    <select class="form-select" id="clientePedido">
+                                        <option value="">Cliente Anónimo</option>
+                                        {% for cliente in clientes %}
+                                        <option value="{{ cliente.id }}">{{ cliente.nombre }} {{ cliente.apellido }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Observaciones</label>
+                                    <textarea class="form-control" id="observacionesPedido" rows="3"></textarea>
+                                </div>
+                                
+                                <hr>
+                                
+                                <!-- Resumen del Pedido -->
+                                <h6>Resumen del Pedido</h6>
+                                <div id="resumenPedido">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Subtotal:</span>
+                                        <span id="subtotalPedido">$0</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span>IVA (16%):</span>
+                                        <span id="ivaPedido">$0</span>
+                                    </div>
+                                    <hr>
+                                    <div class="d-flex justify-content-between fw-bold">
+                                        <span>Total:</span>
+                                        <span id="totalPedido">$0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Productos Disponibles -->
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Productos Disponibles</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <input type="text" class="form-control" id="buscarProductoPedido" placeholder="Buscar producto...">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <select class="form-select" id="filtroCategoriaPedido">
+                                        <option value="">Todas las categorías</option>
+                                        {% for categoria in categorias %}
+                                        <option value="{{ categoria.id }}">{{ categoria.nombre_categoria }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                
+                                <div class="productos-lista" style="max-height: 400px; overflow-y: auto;">
+                                    {% for producto in productos %}
+                                    <div class="producto-item border rounded p-2 mb-2" data-categoria="{{ producto.id_categoria }}">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>{{ producto.nombre }}</strong>
+                                                <br><small class="text-muted">{{ producto.categoria_nombre }}</small>
+                                                <br><span class="text-success fw-bold">${{ "{:,.0f}".format(producto.precio_venta) }}</span>
+                                            </div>
+                                            <button class="btn btn-sm btn-primary" onclick="agregarProducto('{{ producto.id }}', '{{ producto.nombre }}', {{ producto.precio_venta }})">
+                                                <i class="fas fa-plus"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Items del Pedido -->
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Items del Pedido</h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="itemsPedido" style="max-height: 400px; overflow-y: auto;">
+                                    <div class="text-center text-muted py-4">
+                                        <i class="fas fa-shopping-cart fa-3x mb-3"></i>
+                                        <p>No hay items en el pedido</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="guardarPedido()">
+                    <i class="fas fa-save me-2"></i>Crear Pedido
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Detalle Pedido -->
+<div class="modal fade" id="modalDetallePedido" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-receipt me-2"></i>Detalle del Pedido
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="contenidoDetallePedido">
+                <!-- Contenido dinámico -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-info" onclick="imprimirTicket()">
+                    <i class="fas fa-print me-2"></i>Imprimir Ticket
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Procesar Pago -->
+<div class="modal fade" id="modalProcesarPago" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-credit-card me-2"></i>Procesar Pago
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formProcesarPago">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Pedido</label>
+                        <input type="text" class="form-control" id="pedidoPago" readonly>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Total a Pagar</label>
+                        <input type="text" class="form-control" id="totalPago" readonly>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Método de Pago *</label>
+                        <select class="form-select" id="metodoPago" required>
+                            <option value="">Seleccionar método</option>
+                            <option value="EFECTIVO">Efectivo</option>
+                            <option value="TARJETA_CREDITO">Tarjeta de Crédito</option>
+                            <option value="TARJETA_DEBITO">Tarjeta de Débito</option>
+                            <option value="TRANSFERENCIA">Transferencia</option>
+                            <option value="DIGITAL">Pago Digital</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3" id="campoEfectivo" style="display: none;">
+                        <label class="form-label">Monto Recibido</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="montoRecibido" min="0">
+                        </div>
+                        <div class="form-text">
+                            Cambio: <span id="cambio" class="fw-bold">$0</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Observaciones</label>
+                        <textarea class="form-control" id="observacionesPago" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check me-2"></i>Procesar Pago
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Variables globales
+let itemsPedidoActual = [];
+let pedidoActual = null;
+
+// Inicialización
+document.addEventListener('DOMContentLoaded', function() {
+    // Filtros
+    document.getElementById('buscarProductoPedido').addEventListener('input', filtrarProductosPedido);
+    document.getElementById('filtroCategoriaPedido').addEventListener('change', filtrarProductosPedido);
+    
+    // Método de pago
+    document.getElementById('metodoPago').addEventListener('change', function() {
+        const campoEfectivo = document.getElementById('campoEfectivo');
+        campoEfectivo.style.display = this.value === 'EFECTIVO' ? 'block' : 'none';
+    });
+    
+    // Calcular cambio
+    document.getElementById('montoRecibido').addEventListener('input', calcularCambio);
+    
+    // Formulario de pago
+    document.getElementById('formProcesarPago').addEventListener('submit', procesarPagoFinal);
+});
+
+// Filtrar productos en el pedido
+function filtrarProductosPedido() {
+    const busqueda = document.getElementById('buscarProductoPedido').value.toLowerCase();
+    const categoria = document.getElementById('filtroCategoriaPedido').value;
+    
+    const productos = document.querySelectorAll('.producto-item');
+    
+    productos.forEach(producto => {
+        const nombre = producto.textContent.toLowerCase();
+        const categoriaProducto = producto.dataset.categoria;
+        
+        let mostrar = true;
+        
+        if (busqueda && !nombre.includes(busqueda)) {
+            mostrar = false;
+        }
+        
+        if (categoria && categoriaProducto !== categoria) {
+            mostrar = false;
+        }
+        
+        producto.style.display = mostrar ? 'block' : 'none';
+    });
+}
+
+// Agregar producto al pedido
+function agregarProducto(id, nombre, precio) {
+    const itemExistente = itemsPedidoActual.find(item => item.id === id);
+    
+    if (itemExistente) {
+        itemExistente.cantidad++;
+    } else {
+        itemsPedidoActual.push({
+            id: id,
+            nombre: nombre,
+            precio: precio,
+            cantidad: 1
+        });
+    }
+    
+    actualizarItemsPedido();
+    calcularTotalesPedido();
+}
+
+// Actualizar lista de items del pedido
+function actualizarItemsPedido() {
+    const contenedor = document.getElementById('itemsPedido');
+    
+    if (itemsPedidoActual.length === 0) {
+        contenedor.innerHTML = `
+            <div class="text-center text-muted py-4">
+                <i class="fas fa-shopping-cart fa-3x mb-3"></i>
+                <p>No hay items en el pedido</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    itemsPedidoActual.forEach((item, index) => {
+        html += `
+            <div class="item-pedido border rounded p-2 mb-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>${item.nombre}</strong>
+                        <br><span class="text-success">$${item.precio.toLocaleString()}</span>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="cambiarCantidad(${index}, -1)">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <span class="mx-2 fw-bold">${item.cantidad}</span>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="cambiarCantidad(${index}, 1)">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger ms-2" onclick="eliminarItem(${index})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="text-end mt-1">
+                    <small class="text-muted">Subtotal: $${(item.precio * item.cantidad).toLocaleString()}</small>
+                </div>
+            </div>
+        `;
+    });
+    
+    contenedor.innerHTML = html;
+}
+
+// Cambiar cantidad de un item
+function cambiarCantidad(index, cambio) {
+    itemsPedidoActual[index].cantidad += cambio;
+    
+    if (itemsPedidoActual[index].cantidad <= 0) {
+        itemsPedidoActual.splice(index, 1);
+    }
+    
+    actualizarItemsPedido();
+    calcularTotalesPedido();
+}
+
+// Eliminar item del pedido
+function eliminarItem(index) {
+    itemsPedidoActual.splice(index, 1);
+    actualizarItemsPedido();
+    calcularTotalesPedido();
+}
+
+// Calcular totales del pedido
+function calcularTotalesPedido() {
+    const subtotal = itemsPedidoActual.reduce((total, item) => total + (item.precio * item.cantidad), 0);
+    const iva = subtotal * 0.16;
+    const total = subtotal + iva;
+    
+    document.getElementById('subtotalPedido').textContent = `$${subtotal.toLocaleString()}`;
+    document.getElementById('ivaPedido').textContent = `$${iva.toLocaleString()}`;
+    document.getElementById('totalPedido').textContent = `$${total.toLocaleString()}`;
+}
+
+// Guardar pedido
+function guardarPedido() {
+    const mesa = document.getElementById('mesaPedido').value;
+    const cliente = document.getElementById('clientePedido').value;
+    const observaciones = document.getElementById('observacionesPedido').value;
+    
+    if (!mesa) {
+        showToast('Debe seleccionar una mesa', 'error');
+        return;
+    }
+    
+    if (itemsPedidoActual.length === 0) {
+        showToast('Debe agregar al menos un producto al pedido', 'error');
+        return;
+    }
+    
+    // Simular guardado
+    showToast('Pedido creado correctamente', 'success');
+    
+    // Limpiar formulario
+    itemsPedidoActual = [];
+    document.getElementById('mesaPedido').value = '';
+    document.getElementById('clientePedido').value = '';
+    document.getElementById('observacionesPedido').value = '';
+    actualizarItemsPedido();
+    calcularTotalesPedido();
+    
+    // Cerrar modal
+    bootstrap.Modal.getInstance(document.getElementById('modalNuevoPedido')).hide();
+    
+    // Recargar página
+    setTimeout(() => location.reload(), 1500);
+}
+
+// Cambiar estado del pedido
+function cambiarEstado(pedidoId, nuevoEstado) {
+    showToast(`Estado del pedido ${pedidoId} cambiado a ${nuevoEstado.replace('_', ' ')}`, 'success');
+}
+
+// Ver detalle del pedido
+function verDetallePedido(pedidoId) {
+    const contenido = document.getElementById('contenidoDetallePedido');
+    
+    // Simular datos del pedido
+    contenido.innerHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Información del Pedido</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>Número:</strong></td><td>#${pedidoId}</td></tr>
+                    <tr><td><strong>Mesa:</strong></td><td>Mesa 5</td></tr>
+                    <tr><td><strong>Cliente:</strong></td><td>Juan Pérez</td></tr>
+                    <tr><td><strong>Empleado:</strong></td><td>Carlos Rodríguez</td></tr>
+                    <tr><td><strong>Fecha:</strong></td><td>${new Date().toLocaleDateString()}</td></tr>
+                    <tr><td><strong>Hora:</strong></td><td>14:30</td></tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h6>Items del Pedido</h6>
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Cant.</th>
+                            <th>Precio</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Cerveza Corona</td>
+                            <td>2</td>
+                            <td>$8,000</td>
+                            <td>$16,000</td>
+                        </tr>
+                        <tr>
+                            <td>Bandeja Paisa</td>
+                            <td>1</td>
+                            <td>$25,000</td>
+                            <td>$25,000</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="border-top pt-2">
+                    <div class="d-flex justify-content-between">
+                        <span>Subtotal:</span>
+                        <span>$41,000</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>IVA (16%):</span>
+                        <span>$6,560</span>
+                    </div>
+                    <div class="d-flex justify-content-between fw-bold">
+                        <span>Total:</span>
+                        <span>$47,560</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const modal = new bootstrap.Modal(document.getElementById('modalDetallePedido'));
+    modal.show();
+}
+
+// Procesar pago
+function procesarPago(pedidoId) {
+    pedidoActual = pedidoId;
+    document.getElementById('pedidoPago').value = `#${pedidoId}`;
+    document.getElementById('totalPago').value = '$47,560';
+    
+    const modal = new bootstrap.Modal(document.getElementById('modalProcesarPago'));
+    modal.show();
+}
+
+// Calcular cambio
+function calcularCambio() {
+    const total = 47560; // En implementación real, obtener del pedido
+    const recibido = parseFloat(document.getElementById('montoRecibido').value) || 0;
+    const cambio = recibido - total;
+    
+    document.getElementById('cambio').textContent = `$${Math.max(0, cambio).toLocaleString()}`;
+}
+
+// Procesar pago final
+function procesarPagoFinal(e) {
+    e.preventDefault();
+    
+    const metodo = document.getElementById('metodoPago').value;
+    
+    if (!metodo) {
+        showToast('Debe seleccionar un método de pago', 'error');
+        return;
+    }
+    
+    if (metodo === 'EFECTIVO') {
+        const recibido = parseFloat(document.getElementById('montoRecibido').value) || 0;
+        if (recibido < 47560) {
+            showToast('El monto recibido debe ser mayor o igual al total', 'error');
+            return;
+        }
+    }
+    
+    showToast('Pago procesado correctamente', 'success');
+    
+    bootstrap.Modal.getInstance(document.getElementById('modalProcesarPago')).hide();
+    document.getElementById('formProcesarPago').reset();
+    
+    setTimeout(() => location.reload(), 1500);
+}
+
+// Imprimir ticket
+function imprimirTicket(pedidoId) {
+    showToast('Función de impresión disponible en versión completa', 'info');
+}
+
+// Actualizar estados
+function actualizarEstados() {
+    showToast('Estados actualizados', 'info');
+    location.reload();
+}
+
+// Función para mostrar notificaciones
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
+    toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    toast.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 3000);
+}
+</script>
+{% endblock %}
