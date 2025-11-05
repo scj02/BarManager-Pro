@@ -3,8 +3,8 @@
 **Sistema de Gestión Integral para Bares**
 
 Desarrollado por:
-- **Sergio Valderrama**
-- **Cristian Cruz**
+- **Sergio Andrés Valderrama Velez**
+- **Cristian Santiago Cruz Jiménez**
 - **Julian Antonio Mejía Eslava**
 
 **Docente:** Christian Felipe Duarte  
@@ -214,5 +214,6 @@ Este proyecto fue desarrollado con fines académicos.
 **© 2025 BarManager Pro - Todos los derechos reservados**
 
 ---
+
 
 **¡Gracias por usar BarManager Pro!** 🍺
